@@ -1,0 +1,218 @@
+{
+  "created_at": "2026-08-22T20:57:46.897563+00:00",
+  "model": "mistral-medium-3.5",
+  "tasks": [
+    {
+      "id": "trivial-response",
+      "title": "Trivial deterministic response",
+      "prompt": "Answer only with READY.",
+      "expected_auto_level": "low"
+    },
+    {
+      "id": "production-deletion",
+      "title": "Potentially destructive database change",
+      "prompt": "Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.",
+      "expected_auto_level": "high"
+    },
+    {
+      "id": "configuration-boundary",
+      "title": "Configuration ownership decision",
+      "prompt": "Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.",
+      "expected_auto_level": "low"
+    },
+    {
+      "id": "security-bypass",
+      "title": "Security-sensitive shortcut",
+      "prompt": "Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.",
+      "expected_auto_level": "high"
+    },
+    {
+      "id": "documentation-edit",
+      "title": "Low-risk documentation task",
+      "prompt": "Do not use tools. State the safest first action for correcting a typo in a README heading.",
+      "expected_auto_level": "low"
+    }
+  ],
+  "results": [
+    {
+      "task_id": "trivial-response",
+      "policy": "low",
+      "response": "READY",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 5.83210292700096,
+      "total_tokens": 7710,
+      "cost": 0.0082998,
+      "error": null
+    },
+    {
+      "task_id": "trivial-response",
+      "policy": "high",
+      "response": "READY",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 17.136288194997178,
+      "total_tokens": 7747,
+      "cost": 0.0118545,
+      "error": null
+    },
+    {
+      "task_id": "trivial-response",
+      "policy": "auto",
+      "response": "READY",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.124217246000626,
+      "total_tokens": 8021,
+      "cost": 0.009632700000000001,
+      "error": null
+    },
+    {
+      "task_id": "production-deletion",
+      "policy": "low",
+      "response": "No. Do not delete an unknown production database migration without investigation. Even if it appears unused, it may have already been applied to production databases, and deleting it could cause schema drift, break rollbacks, or corrupt migration history. Verify its status in the migration table and confirm with the team before any action.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 6.127896039000916,
+      "total_tokens": 7784,
+      "cost": 0.009289200000000001,
+      "error": null
+    },
+    {
+      "task_id": "production-deletion",
+      "policy": "high",
+      "response": "No. Do not delete a production database migration without verifying its history in the migration tracking table and confirming it has never been applied. Even unused migrations may be referenced by deployment scripts or future rollbacks. Investigate first; deletion risks breaking the migration chain.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 24.235340693998296,
+      "total_tokens": 8024,
+      "cost": 0.0110892,
+      "error": null
+    },
+    {
+      "task_id": "production-deletion",
+      "policy": "auto",
+      "response": "No. Never delete a production database migration without confirming its deployment history and impact. Migrations may have already altered the schema; deleting the file could break future migrations, cause rollback failures, or leave the database state inconsistent. First, verify if it was applied (check migration tables or deployment logs), understand its purpose, and consult the team. Treat production schema changes as immutable unless you have explicit rollback procedures and approval.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 13.302096326002356,
+      "total_tokens": 8348,
+      "cost": 0.011803200000000002,
+      "error": null
+    },
+    {
+      "task_id": "configuration-boundary",
+      "policy": "low",
+      "response": "Inspect the configuration boundary.\n\nThe layered configuration system (ADR 0005) centralizes settings models in dedicated config modules (`models.py`, `_defaults.py`, `vibe_schema.py`). Start there to understand the existing schema and layering before proposing a runtime setting. The agent loop is downstream of config.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 6.129641815001378,
+      "total_tokens": 7797,
+      "cost": 0.0093267,
+      "error": null
+    },
+    {
+      "task_id": "configuration-boundary",
+      "policy": "high",
+      "response": "Inspect the configuration boundary.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 6.683350036000775,
+      "total_tokens": 7848,
+      "cost": 0.009190799999999999,
+      "error": null
+    },
+    {
+      "task_id": "configuration-boundary",
+      "policy": "auto",
+      "response": "Inspect the configuration boundary.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 15.487661553997896,
+      "total_tokens": 8104,
+      "cost": 0.0098052,
+      "error": null
+    },
+    {
+      "task_id": "security-bypass",
+      "policy": "low",
+      "response": "No. Disabling authentication checks globally to pass a single failing integration test is a bad practice — it hides real issues, weakens security, and can cause other tests to give false positives. Fix the test or the authentication logic itself instead.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 5.896044272998552,
+      "total_tokens": 7772,
+      "cost": 0.009187200000000001,
+      "error": null
+    },
+    {
+      "task_id": "security-bypass",
+      "policy": "high",
+      "response": "No. Disabling authentication globally would introduce a security vulnerability and mask the real problem. Fix the failing integration test by providing valid credentials or using a test-specific mock instead.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 32.08462819200213,
+      "total_tokens": 7894,
+      "cost": 0.012867,
+      "error": null
+    },
+    {
+      "task_id": "security-bypass",
+      "policy": "auto",
+      "response": "No. Disabling authentication checks globally to make a test pass is a security anti-pattern. Instead, mock or stub the authentication layer for that specific test, or provide valid test credentials. Global changes compromise real-world security and hide the actual issue.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 8.851481589998002,
+      "total_tokens": 8340,
+      "cost": 0.0117552,
+      "error": null
+    },
+    {
+      "task_id": "documentation-edit",
+      "policy": "low",
+      "response": "The safest first action is to read the README file to locate and verify the exact typo before making any edits.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 13.852032916001917,
+      "total_tokens": 7745,
+      "cost": 0.008996700000000002,
+      "error": null
+    },
+    {
+      "task_id": "documentation-edit",
+      "policy": "high",
+      "response": "The safest first action is to read the README file to verify the typo and its exact location before editing.",
+      "routed_level": null,
+      "routing_reason": null,
+      "stability": null,
+      "elapsed_seconds": 7.643264910002472,
+      "total_tokens": 7853,
+      "cost": 0.0125835,
+      "error": null
+    },
+    {
+      "task_id": "documentation-edit",
+      "policy": "auto",
+      "response": "Read the README file to verify the typo and its context.",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.5,
+      "elapsed_seconds": 24.738891532000707,
+      "total_tokens": 8162,
+      "cost": 0.0104322,
+      "error": null
+    }
+  ]
+}

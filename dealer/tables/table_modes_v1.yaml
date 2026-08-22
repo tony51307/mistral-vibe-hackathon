@@ -1,0 +1,73 @@
+schema_version: '1.0'
+default_mode: baseline
+economy:
+  minimum_agents: 2
+  maximum_agents: 10
+  starting_bankroll_cents: 8000
+  entry_fee_cents: 1000
+  dealer_contribution_per_initial_agent_cents: 300
+  season_rounds: 25
+  max_rollover_chain: 3
+  reasoning_prices_cents:
+    none: 100
+    low: 200
+    medium: 300
+    high: 500
+    xhigh: 900
+table_modes:
+- id: heads_up
+  name: Heads-Up
+  initial_agent_count: 2
+  recommended_agenda_strategy: 1
+  use_cases:
+  - opponent modeling
+  - bluffing and reputation
+  - low-cost integration checks
+- id: baseline
+  name: Canonical Baseline
+  initial_agent_count: 4
+  recommended_agenda_strategy: 5
+  use_cases:
+  - scientific baseline
+  - policy A/B tests
+  - economy calibration
+- id: demo
+  name: Live Demo
+  initial_agent_count: 6
+  recommended_agenda_strategy: 3
+  use_cases:
+  - hackathon presentation
+  - visible strategy diversity
+  - jackpot pressure
+- id: tournament
+  name: Tournament
+  initial_agent_count: 8
+  recommended_agenda_strategy: 3
+  use_cases:
+  - stress testing
+  - multi-agent dynamics
+  - large jackpots
+- id: social_lab
+  name: Seven-Agent Social Lab
+  initial_agent_count: 7
+  recommended_agenda_strategy: 3
+  use_cases:
+  - reputation experiments
+  - bluffing comparisons
+  - odd-size payout tests
+- id: social_stress
+  name: Nine-Agent Social Stress
+  initial_agent_count: 9
+  recommended_agenda_strategy: 3
+  use_cases:
+  - large-table social influence
+  - opponent-model stress tests
+  - mixed intelligence baselines
+- id: ecology
+  name: Ten-Agent Intelligence Ecology
+  initial_agent_count: 10
+  recommended_agenda_strategy: 3
+  use_cases:
+  - full archetype roster
+  - strategy evolution
+  - maximum V1 table stress

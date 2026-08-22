@@ -36,6 +36,7 @@ class GameConfig:
     dealer_contribution_cents: int = 1_200
     season_rounds: int = 25
     message_max_chars: int = 100
+    max_rollover_chain: int = 3
     reasoning_prices_cents: dict[ReasoningTier, int] = field(
         default_factory=lambda: {
             ReasoningTier.NONE: 100,
@@ -53,6 +54,7 @@ class GameConfig:
             self.dealer_contribution_cents,
             self.season_rounds,
             self.message_max_chars,
+            self.max_rollover_chain,
         )
         if any(value <= 0 for value in positive):
             raise ValueError("game constants must be positive")
@@ -60,6 +62,22 @@ class GameConfig:
             raise ValueError("reasoning price map must define every tier exactly once")
         if any(value <= 0 for value in self.reasoning_prices_cents.values()):
             raise ValueError("reasoning prices must be positive")
+
+    @classmethod
+    def for_table_size(cls, initial_agent_count: int, **overrides: Any) -> GameConfig:
+        """Build the V1 economy once from the initial 2-to-10 seat count."""
+        if (
+            isinstance(initial_agent_count, bool)
+            or not isinstance(initial_agent_count, int)
+            or not 2 <= initial_agent_count <= 10
+        ):
+            raise ValueError("initial_agent_count must be between 2 and 10")
+        if "dealer_contribution_cents" in overrides:
+            raise ValueError("dealer contribution is derived from the initial table size")
+        return cls(
+            dealer_contribution_cents=300 * initial_agent_count,
+            **overrides,
+        )
 
 
 @dataclass(frozen=True)
@@ -94,6 +112,34 @@ class AgendaCatalog:
     agendas: dict[int, Agenda]
     sha256: str
     path: Path
+
+
+@dataclass(frozen=True)
+class TableMode:
+    mode_id: str
+    name: str
+    initial_agent_count: int
+    recommended_agenda_strategy: int
+    use_cases: tuple[str, ...]
+
+    def default_player_ids(self) -> tuple[str, ...]:
+        return tuple(f"agent_{seat}" for seat in range(1, self.initial_agent_count + 1))
+
+
+@dataclass(frozen=True)
+class TableCatalog:
+    schema_version: str
+    default_mode: str
+    modes: dict[str, TableMode]
+    sha256: str
+    path: Path
+
+    def get(self, mode_id: str | None = None) -> TableMode:
+        selected = mode_id or self.default_mode
+        try:
+            return self.modes[selected]
+        except KeyError as exc:
+            raise ValueError(f"unknown table mode {selected!r}") from exc
 
 
 @dataclass

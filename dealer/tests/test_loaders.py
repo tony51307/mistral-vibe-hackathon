@@ -5,12 +5,13 @@ import unittest
 
 import yaml
 
-from game.loaders import DataValidationError, load_agendas, load_problem_bank
+from game.loaders import DataValidationError, load_agendas, load_problem_bank, load_table_modes
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BANK_PATH = ROOT / "data" / "pay_to_think_problem_bank_v1.json"
 AGENDA_PATH = ROOT / "data" / "pay_to_think_agendas_v1.yaml"
+TABLE_PATH = ROOT / "tables" / "table_modes_v1.yaml"
 
 
 class LoaderTests(unittest.TestCase):
@@ -20,6 +21,8 @@ class LoaderTests(unittest.TestCase):
         self.assertEqual(len(bank.problems), 50)
         self.assertEqual(set(catalog.agendas), {1, 2, 3, 4, 5})
         self.assertTrue(all(len(agenda.rounds) == 25 for agenda in catalog.agendas.values()))
+        tables = load_table_modes(TABLE_PATH, catalog)
+        self.assertEqual(tables.get().initial_agent_count, 4)
 
     def test_agenda_metadata_cannot_override_canonical_bank(self):
         bank = load_problem_bank(BANK_PATH)

@@ -7,7 +7,15 @@ from typing import Any
 
 import yaml
 
-from .models import Agenda, AgendaCatalog, AgendaRound, ProblemBank
+from .models import (
+    Agenda,
+    AgendaCatalog,
+    AgendaRound,
+    ProblemBank,
+    ReasoningTier,
+    TableCatalog,
+    TableMode,
+)
 
 
 class DataValidationError(ValueError):
@@ -167,6 +175,84 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
         agendas[strategy] = Agenda(strategy, name, objective, tuple(rounds))
 
     return AgendaCatalog(schema_version, agendas, _sha256(data), resolved)
+
+
+def load_table_modes(
+    path: str | Path,
+    agenda_catalog: AgendaCatalog | None = None,
+) -> TableCatalog:
+    resolved, data = _read_bytes(path)
+    try:
+        document = _require_mapping(yaml.safe_load(data), "table-mode document")
+    except (yaml.YAMLError, UnicodeDecodeError) as exc:
+        raise DataValidationError(f"invalid table-mode YAML: {exc}") from exc
+
+    schema_version = _require_nonempty_string(document.get("schema_version"), "schema_version")
+    if agenda_catalog and schema_version != agenda_catalog.schema_version:
+        raise DataValidationError(
+            f"table schema {schema_version!r} does not match agenda schema "
+            f"{agenda_catalog.schema_version!r}"
+        )
+
+    economy = _require_mapping(document.get("economy"), "economy")
+    expected_economy = {
+        "minimum_agents": 2,
+        "maximum_agents": 10,
+        "starting_bankroll_cents": 8_000,
+        "entry_fee_cents": 1_000,
+        "dealer_contribution_per_initial_agent_cents": 300,
+        "season_rounds": 25,
+        "max_rollover_chain": 3,
+        "reasoning_prices_cents": {
+            tier.value: price
+            for tier, price in {
+                ReasoningTier.NONE: 100,
+                ReasoningTier.LOW: 200,
+                ReasoningTier.MEDIUM: 300,
+                ReasoningTier.HIGH: 500,
+                ReasoningTier.XHIGH: 900,
+            }.items()
+        },
+    }
+    if economy != expected_economy:
+        raise DataValidationError("table economy must match the frozen V1 scaling contract")
+
+    default_mode = _require_nonempty_string(document.get("default_mode"), "default_mode")
+    raw_modes = document.get("table_modes")
+    if not isinstance(raw_modes, list) or not raw_modes:
+        raise DataValidationError("table_modes must be a non-empty list")
+
+    modes: dict[str, TableMode] = {}
+    for index, raw_mode in enumerate(raw_modes):
+        item = _require_mapping(raw_mode, f"table_modes[{index}]")
+        mode_id = _require_nonempty_string(item.get("id"), f"table_modes[{index}].id")
+        if mode_id in modes:
+            raise DataValidationError(f"duplicate table mode id: {mode_id}")
+        name = _require_nonempty_string(item.get("name"), f"table mode {mode_id}.name")
+        count = item.get("initial_agent_count")
+        if isinstance(count, bool) or not isinstance(count, int) or not 2 <= count <= 10:
+            raise DataValidationError(
+                f"table mode {mode_id}: initial_agent_count must be between 2 and 10"
+            )
+        strategy = item.get("recommended_agenda_strategy")
+        if isinstance(strategy, bool) or not isinstance(strategy, int) or strategy <= 0:
+            raise DataValidationError(
+                f"table mode {mode_id}: recommended_agenda_strategy must be positive"
+            )
+        if agenda_catalog and strategy not in agenda_catalog.agendas:
+            raise DataValidationError(
+                f"table mode {mode_id}: unknown agenda strategy {strategy}"
+            )
+        use_cases = item.get("use_cases")
+        if not isinstance(use_cases, list) or not use_cases or not all(
+            isinstance(value, str) and value.strip() for value in use_cases
+        ):
+            raise DataValidationError(f"table mode {mode_id}: use_cases must be strings")
+        modes[mode_id] = TableMode(mode_id, name, count, strategy, tuple(use_cases))
+
+    if default_mode not in modes:
+        raise DataValidationError(f"default_mode {default_mode!r} is not defined")
+    return TableCatalog(schema_version, default_mode, modes, _sha256(data), resolved)
 
 
 def public_problem(problem: dict[str, Any]) -> dict[str, str]:

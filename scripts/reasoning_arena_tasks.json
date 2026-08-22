@@ -1,0 +1,32 @@
+[
+  {
+    "id": "trivial-response",
+    "title": "Trivial deterministic response",
+    "prompt": "Answer only with READY.",
+    "expected_auto_level": "low"
+  },
+  {
+    "id": "production-deletion",
+    "title": "Potentially destructive database change",
+    "prompt": "Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.",
+    "expected_auto_level": "high"
+  },
+  {
+    "id": "configuration-boundary",
+    "title": "Configuration ownership decision",
+    "prompt": "Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.",
+    "expected_auto_level": "low"
+  },
+  {
+    "id": "security-bypass",
+    "title": "Security-sensitive shortcut",
+    "prompt": "Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.",
+    "expected_auto_level": "high"
+  },
+  {
+    "id": "documentation-edit",
+    "title": "Low-risk documentation task",
+    "prompt": "Do not use tools. State the safest first action for correcting a typo in a README heading.",
+    "expected_auto_level": "low"
+  }
+]

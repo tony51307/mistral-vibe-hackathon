@@ -1,0 +1,252 @@
+schema_version: '1.0'
+llm_defaults:
+  provider: mistral
+  model_id_env: MISTRAL_MODEL
+  api_key_env: MISTRAL_API_KEY
+  temperature: 0.2
+  max_output_tokens: 512
+table_talk:
+  enabled: true
+  max_chars: 100
+  messages_per_agent: 1
+  publish_simultaneously: true
+  communication_after_problem_reveal: false
+public_history:
+  include:
+  - category
+  - table_talk
+  - reasoning_tier
+  - submitted_answer
+  - correct
+  - prize_received_cents
+  - bankroll_after_round_cents
+  exclude:
+  - chain_of_thought
+  - private_strategy
+  - internal_confidence
+  - hidden_difficulty
+  - answer_key
+profiles:
+- id: prodigy
+  display_name: The Prodigy
+  archetype: base pretrained intelligence
+  runtime: llm
+  prompt_persona: Rely on fast pretrained intuition and preserve bankroll.
+  policies:
+    speech: concise_neutral
+    listening: basic
+    reasoning: always_none
+    answering: llm_base
+  bluff:
+    mode: none
+    listen_to_table_talk: true
+    history_window_rounds: 5
+    private_strategy_memory: false
+- id: professor
+  display_name: The Professor
+  archetype: brute-force reasoning baseline
+  runtime: llm
+  prompt_persona: Project confidence and buy high reasoning whenever affordable.
+  policies:
+    speech: confident
+    listening: ignore
+    reasoning: always_high
+    answering: llm_reasoning
+  bluff:
+    mode: none
+    listen_to_table_talk: false
+    history_window_rounds: 0
+    private_strategy_memory: false
+- id: scientist
+  display_name: The Scientist
+  archetype: perturbation-guided Pay-to-Think
+  runtime: llm
+  prompt_persona: Use cheap independent views and escalate only on material instability.
+  policies:
+    speech: evidence_cautious
+    listening: ignore
+    reasoning: perturbation_router
+    answering: llm_adaptive
+  bluff:
+    mode: none
+    listen_to_table_talk: false
+    history_window_rounds: 0
+    private_strategy_memory: true
+- id: quant
+  display_name: The Quant
+  archetype: bankroll and pot-aware economist
+  runtime: llm
+  prompt_persona: Optimize expected bankroll using pot, price, survival, and competition.
+  policies:
+    speech: minimal
+    listening: history_weighted
+    reasoning: kelly_value
+    answering: llm_adaptive
+  bluff:
+    mode: honest
+    listen_to_table_talk: true
+    history_window_rounds: 10
+    private_strategy_memory: true
+- id: bluffer
+  display_name: The Bluffer
+  archetype: strategic social deception
+  runtime: llm
+  prompt_persona: Use category-only speech to influence rivals without leaking solutions.
+  llm:
+    temperature: 0.7
+    max_output_tokens: 128
+  policies:
+    speech: strategic_deception
+    listening: basic
+    reasoning: dynamic
+    answering: llm_adaptive
+  bluff:
+    mode: strategic
+    listen_to_table_talk: true
+    history_window_rounds: 10
+    private_strategy_memory: true
+- id: honest_signaler
+  display_name: The Honest Signaler
+  archetype: truthful social control
+  runtime: llm
+  prompt_persona: Report category-level confidence honestly and reason dynamically.
+  policies:
+    speech: honest_confidence
+    listening: history_weighted
+    reasoning: dynamic
+    answering: llm_adaptive
+  bluff:
+    mode: honest
+    listen_to_table_talk: true
+    history_window_rounds: 10
+    private_strategy_memory: true
+- id: shark
+  display_name: The Shark
+  archetype: opponent modeling and reputation
+  runtime: llm
+  prompt_persona: Model competitor credibility and likely pot splits before spending.
+  policies:
+    speech: strategic
+    listening: opponent_model
+    reasoning: opponent_aware
+    answering: llm_adaptive
+  bluff:
+    mode: strategic
+    listen_to_table_talk: true
+    history_window_rounds: 25
+    private_strategy_memory: true
+- id: monk
+  display_name: The Monk
+  archetype: zero-intelligence baseline
+  runtime: deterministic
+  deterministic_answer_policy: constant_zero
+  policies:
+    speech: minimal
+    listening: ignore
+    reasoning: always_none
+    answering: constant_zero
+  bluff:
+    mode: none
+    listen_to_table_talk: false
+    history_window_rounds: 0
+    private_strategy_memory: false
+- id: degenerate
+  display_name: The Degenerate
+  archetype: category-conditioned answer prior
+  runtime: deterministic
+  deterministic_answer_policy: category_weighted_common_constants
+  policies:
+    speech: playful
+    listening: ignore
+    reasoning: always_none
+    answering: category_prior
+  bluff:
+    mode: none
+    listen_to_table_talk: false
+    history_window_rounds: 0
+    private_strategy_memory: false
+- id: darwin
+  display_name: Darwin
+  archetype: self-rewriting strategy
+  runtime: llm
+  prompt_persona: Adapt speech, listening, and reasoning from public outcomes only.
+  strategy_rewrite_interval_rounds: 5
+  llm:
+    temperature: 0.5
+    max_output_tokens: 768
+  policies:
+    speech: learned
+    listening: learned
+    reasoning: learned
+    answering: llm_adaptive
+  bluff:
+    mode: learned
+    listen_to_table_talk: true
+    history_window_rounds: 25
+    private_strategy_memory: true
+rosters:
+- id: social_6
+  name: Six-Agent Social Core
+  initial_agent_count: 6
+  recommended_agenda_strategy: 3
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
+  - {seat: 4, agent_id: quant, profile_id: quant}
+  - {seat: 5, agent_id: bluffer, profile_id: bluffer}
+  - {seat: 6, agent_id: honest, profile_id: honest_signaler}
+- id: social_7
+  name: Seven-Agent Reputation Table
+  initial_agent_count: 7
+  recommended_agenda_strategy: 3
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
+  - {seat: 4, agent_id: quant, profile_id: quant}
+  - {seat: 5, agent_id: bluffer, profile_id: bluffer}
+  - {seat: 6, agent_id: honest, profile_id: honest_signaler}
+  - {seat: 7, agent_id: shark, profile_id: shark}
+- id: social_8
+  name: Eight-Agent Social Baselines
+  initial_agent_count: 8
+  recommended_agenda_strategy: 3
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
+  - {seat: 4, agent_id: quant, profile_id: quant}
+  - {seat: 5, agent_id: bluffer, profile_id: bluffer}
+  - {seat: 6, agent_id: honest, profile_id: honest_signaler}
+  - {seat: 7, agent_id: shark, profile_id: shark}
+  - {seat: 8, agent_id: monk, profile_id: monk}
+- id: social_9
+  name: Nine-Agent Mixed Intelligence
+  initial_agent_count: 9
+  recommended_agenda_strategy: 3
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
+  - {seat: 4, agent_id: quant, profile_id: quant}
+  - {seat: 5, agent_id: bluffer, profile_id: bluffer}
+  - {seat: 6, agent_id: honest, profile_id: honest_signaler}
+  - {seat: 7, agent_id: shark, profile_id: shark}
+  - {seat: 8, agent_id: monk, profile_id: monk}
+  - {seat: 9, agent_id: degenerate, profile_id: degenerate}
+- id: social_10
+  name: Ten-Agent Intelligence Ecology
+  initial_agent_count: 10
+  recommended_agenda_strategy: 3
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
+  - {seat: 4, agent_id: quant, profile_id: quant}
+  - {seat: 5, agent_id: bluffer, profile_id: bluffer}
+  - {seat: 6, agent_id: honest, profile_id: honest_signaler}
+  - {seat: 7, agent_id: shark, profile_id: shark}
+  - {seat: 8, agent_id: monk, profile_id: monk}
+  - {seat: 9, agent_id: degenerate, profile_id: degenerate}
+  - {seat: 10, agent_id: darwin, profile_id: darwin}

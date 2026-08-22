@@ -1,30 +1,68 @@
-"""Two-phase rounds: sealed entrance, then private calculation cycles."""
+"""Streamlit-facing adapter around the canonical dealer core."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+import hashlib
+from pathlib import Path
+import sys
+from typing import Any, Mapping
 
-from agents import AlwaysThinkAgent, CycleContext, DynamicAgent, FastAgent, PublicContext
 from metrics import attach_bankroll, empty_stats, summary, update_after_round
-from mistral_client import MistralClient
-from problems import PRIZE_BY_DIFFICULTY, demo_schedule, is_correct
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEALER_ROOT = REPO_ROOT / "dealer"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+if str(DEALER_ROOT) not in sys.path:
+    sys.path.insert(0, str(DEALER_ROOT))
+
+from dealer.game.dealer_distributor import DealerGame, SeasonComplete
+from dealer.game.loaders import load_agendas, load_problem_bank
+from dealer.game.models import GameConfig as DealerConfig
+
+
+PLAYER_IDS = ("fast", "always_think", "dynamic", "control")
+DISPLAY_NAMES = {
+    "fast": "Fast",
+    "always_think": "Always Think",
+    "dynamic": "Dynamic",
+    "control": "Control",
+}
+DISPLAY_TO_ID = {display: agent_id for agent_id, display in DISPLAY_NAMES.items()}
+
+POLICY_BY_ID = {
+    "fast": "cheap-only",
+    "always_think": "always-deep",
+    "dynamic": "autothink",
+    "control": "balanced",
+}
+
+TIER_PRICE = {
+    "none": 1,
+    "low": 2,
+    "medium": 3,
+    "high": 5,
+    "xhigh": 9,
+}
 
 
 @dataclass
 class GameConfig:
-    start_bankroll: int = 100
-    entrance_fee: int = 2
-    n_rounds: int = 10
-    n_perturbations: int = 4
-    max_cycles: int = 3
+    start_bankroll: int = 80
+    entrance_fee: int = 10
+    dealer_contribution: int = 12
+    n_rounds: int = 25
+    strategy_number: int = 3
+    seed: int = 260822
     use_live_api: bool = False
 
 
 @dataclass
 class GameState:
     config: GameConfig
-    problems: list[dict[str, Any]]
+    dealer: DealerGame
     round_index: int = 0
     prize_pool: int = 0
     bankrolls: dict[str, int] = field(default_factory=dict)
@@ -33,258 +71,337 @@ class GameState:
     finished: bool = False
 
 
-def _agents() -> list[Any]:
-    return [FastAgent(), AlwaysThinkAgent(), DynamicAgent()]
+def dollars(cents: int | float) -> float:
+    return round(cents / 100, 2)
+
+
+def cents(dollars_value: int | float) -> int:
+    return int(round(dollars_value * 100))
 
 
 def new_game(config: GameConfig) -> GameState:
-    agents = _agents()
-    names = [a.name for a in agents]
+    bank = load_problem_bank(DEALER_ROOT / "data/pay_to_think_problem_bank_v1.json")
+    agendas = load_agendas(DEALER_ROOT / "data/pay_to_think_agendas_v1.yaml", bank)
+    dealer_config = DealerConfig(
+        starting_bankroll_cents=cents(config.start_bankroll),
+        entry_fee_cents=cents(config.entrance_fee),
+        dealer_contribution_cents=cents(config.dealer_contribution),
+        season_rounds=config.n_rounds,
+    )
+    dealer = DealerGame(
+        player_ids=PLAYER_IDS,
+        problem_bank=bank,
+        agenda_catalog=agendas,
+        strategy_number=config.strategy_number,
+        seed=config.seed,
+        config=dealer_config,
+        model_identifier="streamlit-demo",
+    )
     return GameState(
         config=config,
-        problems=demo_schedule(config.n_rounds),
-        bankrolls={name: config.start_bankroll for name in names},
-        stats={name: empty_stats(name, config.start_bankroll) for name in names},
+        dealer=dealer,
+        bankrolls={
+            name: config.start_bankroll for name in DISPLAY_NAMES.values()
+        },
+        stats={
+            name: empty_stats(name, config.start_bankroll)
+            for name in DISPLAY_NAMES.values()
+        },
     )
 
 
-def play_round(state: GameState, client: MistralClient) -> dict[str, Any]:
-    if state.finished or state.round_index >= len(state.problems):
+def play_round(state: GameState, client: Any) -> dict[str, Any]:
+    if state.finished:
+        return {"finished": True}
+
+    try:
+        category_payloads = state.dealer.reveal_category()
+    except SeasonComplete:
         state.finished = True
         return {"finished": True}
 
-    problem = state.problems[state.round_index]
-    base_prize = PRIZE_BY_DIFFICULTY.get(problem["difficulty"], 15)
-    rollover = state.prize_pool
-    live = state.config.use_live_api and client.available
-    fee = state.config.entrance_fee
-    agents = _agents()
-    for agent in agents:
-        agent.reset_round()
-
-    bankrolls_before = dict(state.bankrolls)
-    announcement = {
-        "round": state.round_index + 1,
-        "category": problem["category"],
-        "difficulty": problem["difficulty"],
-        "question": problem["question"],
-        "base_prize": base_prize,
-        "rollover": rollover,
-        "entrance_fee": fee,
-        "public_bankrolls": bankrolls_before,
+    round_number = next(iter(category_payloads.values()))["round"]
+    state.dealer.collect_entries()
+    messages = _table_talk(category_payloads)
+    display_messages = state.dealer.record_table_talk(messages)
+    problem_payloads = state.dealer.reveal_problem()
+    routers = {
+        agent_id: _router(agent_id, round_number)
+        for agent_id in problem_payloads
     }
-
-    entries: dict[str, Any] = {}
-    public_entries = []
-    for agent in agents:
-        ctx = PublicContext(
-            problem=problem,
-            base_prize=base_prize,
-            rollover=rollover,
-            prize=base_prize + rollover,
-            entrance_fee=fee,
-            bankroll=state.bankrolls[agent.name],
-            public_bankrolls=bankrolls_before,
-            entered=[],
-            cycle_index=0,
-            public_purchases=[],
-            no_winner_last_cycle=False,
-            use_live_api=live,
-            client=client,
-            n_perturbations=state.config.n_perturbations,
-        )
-        decision = agent.decide_entry(ctx)
-        entries[agent.name] = decision
-        if decision.enter:
-            state.bankrolls[agent.name] -= fee
-        public_entries.append(
-            {
-                "agent": agent.name,
-                "decision": "ENTER" if decision.enter else "DECLINE",
-                "entrance_fee": fee if decision.enter else 0,
-            }
-        )
-
-    entered = [name for name, d in entries.items() if d.enter]
-    total_prize = base_prize + rollover + fee * len(entered)
-    bankrolls_after_entry = dict(state.bankrolls)
-    announcement["prize"] = total_prize
-    announcement["entered"] = entered
-
-    spend = {name: (fee if name in entered else 0) for name in state.bankrolls}
-    metrics_acc = {name: {} for name in state.bankrolls}
-    submitted_any = {name: False for name in state.bankrolls}
-
-    cycles: list[dict[str, Any]] = []
-    winners: list[str] = []
-    payouts: dict[str, int] = {name: 0 for name in state.bankrolls}
-    payout_each = 0
-    active = set(entered)
-    public_purchases: list[dict[str, Any]] = []
-    no_winner_last = False
-
-    for cycle_i in range(1, state.config.max_cycles + 1):
-        if not active:
-            break
-
-        public_actions = []
-        dealer_actions = []
-        submissions: dict[str, str] = {}
-        thought_this_cycle = False
-
-        for agent in agents:
-            if agent.name not in active:
-                continue
-            ctx = CycleContext(
-                problem=problem,
-                base_prize=base_prize,
-                rollover=rollover,
-                prize=total_prize,
-                entrance_fee=fee,
-                bankroll=state.bankrolls[agent.name],
-                public_bankrolls=dict(state.bankrolls),
-                entered=list(entered),
-                cycle_index=cycle_i,
-                public_purchases=list(public_purchases),
-                no_winner_last_cycle=no_winner_last,
-                use_live_api=live,
-                client=client,
-                n_perturbations=state.config.n_perturbations,
-                remaining_bankroll=state.bankrolls[agent.name],
-            )
-            act = agent.decide_cycle(ctx)
-            if act.action == "THINK":
-                if act.amount > state.bankrolls[agent.name]:
-                    act.action = "EXIT"
-                    act.amount = 0
-                    act.answer = ""
-                else:
-                    state.bankrolls[agent.name] -= act.amount
-                    spend[agent.name] += act.amount
-                    submissions[agent.name] = act.answer
-                    submitted_any[agent.name] = True
-                    thought_this_cycle = True
-                    public_purchases.append(
-                        {"cycle": cycle_i, "agent": agent.name, "think": act.amount}
-                    )
-            if act.action == "EXIT":
-                active.discard(agent.name)
-
-            _merge_metrics(metrics_acc[agent.name], act.metrics)
-            public_actions.append(
-                {
-                    "agent": agent.name,
-                    "action": act.action,
-                    "think_credits": act.amount if act.action == "THINK" else 0,
-                    "policy": act.public.get("policy"),
-                }
-            )
-            dealer_actions.append(
-                {
-                    "agent": agent.name,
-                    "action": act.action,
-                    "think_credits": act.amount,
-                    "answer": act.answer,
-                    "dealer": act.dealer,
-                    "metrics": act.metrics,
-                }
-            )
-
-        cycle_winners = [name for name, ans in submissions.items() if is_correct(ans, problem)]
-        public_cycle: dict[str, Any] = {
-            "cycle": cycle_i,
-            "actions": public_actions,
-            "submitted_count": len(submissions),
-            "winner_announced": bool(cycle_winners),
-            "winners": cycle_winners,
-        }
-        if cycle_winners:
-            public_cycle["dealer_announcement"] = (
-                f"Winning cycle. Prize split equally among: {', '.join(cycle_winners)}."
-            )
-        else:
-            public_cycle["dealer_announcement"] = (
-                "No winner this cycle. Incorrect answers are not revealed. "
-                "A new solving cycle may begin."
-            )
-
-        cycles.append({"public": public_cycle, "dealer": dealer_actions})
-
-        if cycle_winners:
-            winners = cycle_winners
-            payout_each = total_prize // len(winners)
-            remainder = total_prize % len(winners)
-            for i, name in enumerate(winners):
-                pay = payout_each + (remainder if i == 0 else 0)
-                payouts[name] = pay
-                state.bankrolls[name] += pay
-            state.prize_pool = 0
-            break
-
-        no_winner_last = True
-        if not thought_this_cycle:
-            break
-
-    if not winners:
-        state.prize_pool = total_prize
-
-    for name in state.bankrolls:
-        entered_round = name in entered
-        update_after_round(
-            state.stats[name],
-            {
-                "decision": "ENTER" if entered_round else "DECLINE",
-                "spent": spend[name],
-                "correct": name in winners,
-                "submitted": submitted_any[name],
-                "payout": payouts[name],
-                "metrics": metrics_acc[name],
-            },
-        )
-        attach_bankroll(state.stats[name], state.bankrolls[name])
-
-    record = {
-        "finished": False,
-        "round": state.round_index + 1,
-        "announcement": announcement,
-        "problem": {
-            "id": problem["id"],
-            "question": problem["question"],
-            "answer": problem["answer"],
-            "explanation": problem["explanation"],
-            "difficulty": problem["difficulty"],
-            "category": problem["category"],
-        },
-        "phase1": {
-            "entries": public_entries,
-            "entered": entered,
-            "prize_pool": total_prize,
-            "public_bankrolls_after_entry": bankrolls_after_entry,
-        },
-        "cycles": cycles,
-        "winners": winners,
-        "payouts": payouts,
-        "payout_each": payout_each,
-        "prize": total_prize,
-        "rollover": state.prize_pool if not winners else 0,
-        "bankrolls": dict(state.bankrolls),
-        "dealer_entries": {name: entries[name].reason for name in entries},
+    state.dealer.route_and_purchase(routers)
+    solvers = {
+        agent_id: _solver(agent_id, state.dealer.problem_bank.problems[payload["problem_id"]])
+        for agent_id, payload in problem_payloads.items()
     }
-
-    state.history.append(record)
-    state.round_index += 1
-    if state.round_index >= len(state.problems):
-        state.finished = True
-        record["final_summary"] = summary(list(state.stats.values()), state.stats.get("Dynamic"))
+    state.dealer.solve(solvers)
+    state.dealer.judge()
+    state.dealer.payout()
+    event = state.dealer.complete_round()
+    public_problem = next(iter(problem_payloads.values()))
+    record = _record_from_event(event, display_messages, public_problem)
+    _update_state_after_event(state, record, event)
     return record
 
 
-def _merge_metrics(acc: dict[str, Any], extra: dict[str, Any]) -> None:
-    for key in ("cheap_calls", "perturbation_calls", "deep_calls"):
-        acc[key] = acc.get(key, 0) + extra.get(key, 0)
-    if extra.get("deep_triggered"):
-        acc["deep_triggered"] = True
-    if extra.get("changed_answer"):
-        acc["changed_answer"] = True
-    if extra.get("useful_revision"):
-        acc["useful_revision"] = extra["useful_revision"]
+def _table_talk(category_payloads: Mapping[str, Mapping[str, Any]]) -> dict[str, str]:
+    messages = {
+        "fast": "{category}: fast read, low spend.",
+        "always_think": "{category}: buying depth if the stack allows.",
+        "dynamic": "{category}: routing first, spend only on instability.",
+        "control": "{category}: balanced tier, steady stack.",
+    }
+    return {
+        agent_id: messages[agent_id].format(category=payload["category"].title())
+        for agent_id, payload in category_payloads.items()
+    }
+
+
+def _router(agent_id: str, round_number: int):
+    def route(payload: Mapping[str, Any]) -> dict[str, str]:
+        affordable = set(payload["affordable_tiers"])
+        pot = dollars(payload["pot_cents"])
+        category = str(payload["category"])
+        if agent_id == "fast":
+            tier = "none"
+        elif agent_id == "always_think":
+            tier = "xhigh" if pot >= 100 or round_number % 8 == 0 else "high"
+        elif agent_id == "control":
+            tier = "medium" if round_number % 3 == 0 else "low"
+        else:
+            tier = _dynamic_tier(payload, round_number)
+        if tier in affordable:
+            return {"reasoning_tier": tier}
+        for fallback in ("high", "medium", "low", "none"):
+            if fallback in affordable:
+                return {"reasoning_tier": fallback}
+        return {"reasoning_tier": "none"}
+
+    return route
+
+
+def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
+    category = str(payload["category"])
+    pot = dollars(payload["pot_cents"])
+    score = _score(str(payload["problem_id"]), round_number, pot)
+    disagreement = category in {"probability", "algorithms", "logic"} or score % 5 == 0
+    high_risk = pot >= 100 or score % 11 == 0
+    if high_risk and disagreement:
+        return "xhigh" if score % 4 == 0 else "high"
+    if disagreement:
+        return "high" if score % 3 == 0 else "medium"
+    if high_risk:
+        return "medium"
+    return "low" if score % 4 else "none"
+
+
+def _solver(agent_id: str, problem: dict[str, Any]):
+    def solve(payload: Mapping[str, Any]) -> dict[str, Any]:
+        tier = str(payload["reasoning_tier"])
+        answer = problem["answer"]["display"]
+        if not _mock_correct(agent_id, str(problem["id"]), tier, problem):
+            answer = _wrong_answer(problem)
+        return {
+            "answer": answer,
+            "model": "offline-dealer-demo",
+            "api_reasoning_configuration": tier,
+        }
+
+    return solve
+
+
+def _mock_correct(agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]) -> bool:
+    difficulty = problem["dealer_meta"]["difficulty"]
+    probabilities = {
+        "trivial": {"none": 0.92, "low": 0.95, "medium": 0.97, "high": 0.99, "xhigh": 0.99},
+        "easy": {"none": 0.82, "low": 0.88, "medium": 0.93, "high": 0.97, "xhigh": 0.99},
+        "medium": {"none": 0.52, "low": 0.62, "medium": 0.76, "high": 0.86, "xhigh": 0.91},
+        "hard": {"none": 0.25, "low": 0.36, "medium": 0.54, "high": 0.70, "xhigh": 0.80},
+        "very_hard": {"none": 0.12, "low": 0.22, "medium": 0.36, "high": 0.54, "xhigh": 0.66},
+    }
+    probability = probabilities.get(difficulty, probabilities["medium"])[tier]
+    if agent_id == "dynamic" and tier in {"high", "xhigh"}:
+        probability = min(0.95, probability + 0.07)
+    sample = _score(f"{agent_id}:{problem_id}:{tier}", len(problem_id), 0) / 100
+    return sample < probability
+
+
+def _wrong_answer(problem: dict[str, Any]) -> str:
+    validator = problem["answer"]["validator"]
+    kind = validator["kind"]
+    if kind == "integer":
+        return str(int(validator["value"]) + 1)
+    if kind == "numeric":
+        return str(float(validator["value"]) + 1)
+    if kind == "boolean":
+        return "false" if validator["value"] else "true"
+    return "unknown"
+
+
+def _score(*parts: object) -> int:
+    digest = hashlib.sha256(":".join(str(part) for part in parts).encode()).hexdigest()
+    return int(digest[:8], 16) % 100
+
+
+def _record_from_event(
+    event: dict[str, Any],
+    display_messages: dict[str, str],
+    public_problem: Mapping[str, Any],
+) -> dict[str, Any]:
+    agents = {row["agent_id"]: row for row in event["agents"]}
+    winners = [DISPLAY_NAMES[agent_id] for agent_id in event["winner_ids"]]
+    entries = [
+        {
+            "agent": DISPLAY_NAMES[agent_id],
+            "decision": "SHOW HAND" if row["show_hand"] else "ENTER",
+            "entrance_fee": dollars(row["entry_paid_cents"]),
+            "message": display_messages.get(agent_id, ""),
+        }
+        for agent_id, row in agents.items()
+    ]
+    public_actions = [
+        {
+            "agent": DISPLAY_NAMES[agent_id],
+            "action": "THINK",
+            "think_credits": dollars(row["reasoning_price_cents"]),
+            "policy": POLICY_BY_ID[agent_id],
+        }
+        for agent_id, row in agents.items()
+    ]
+    dealer_actions = [
+        {
+            "agent": DISPLAY_NAMES[agent_id],
+            "action": "THINK",
+            "think_credits": dollars(row["reasoning_price_cents"]),
+            "answer": row["submitted_answer"],
+            "tier": row["router_tier"],
+            "correct": row["correct"],
+            "dealer": {
+                "show_hand": row["show_hand"],
+                "router_fallback": row["router_fallback"],
+                "router_attempts": row["router_attempts"],
+                "judge": row["judge"],
+                "trace": _autothink_trace(agent_id, row, event),
+            },
+            "metrics": _agent_metrics(agent_id, row),
+        }
+        for agent_id, row in agents.items()
+    ]
+    payouts = {
+        DISPLAY_NAMES[agent_id]: dollars(row["prize_received_cents"])
+        for agent_id, row in agents.items()
+    }
+    problem = {
+        "id": event["problem_id"],
+        "question": str(public_problem["prompt_markdown"]),
+        "answer": event["correct_answer"],
+        "explanation": "Validated by the canonical dealer answer key.",
+        "difficulty": event["hidden_difficulty"],
+        "category": event["category"],
+    }
+    return {
+        "finished": False,
+        "round": event["round"],
+        "announcement": {
+            "round": event["round"],
+            "category": event["category"],
+            "base_prize": dollars(event["dealer_contribution_cents"]),
+            "rollover": dollars(event["rollover_in_cents"]),
+            "entrance_fee": dollars(next(iter(agents.values()))["entry_paid_cents"]),
+        },
+        "problem": problem,
+        "phase1": {
+            "entries": entries,
+            "entered": [entry["agent"] for entry in entries],
+            "prize_pool": dollars(event["pot_cents"]),
+            "public_bankrolls_after_entry": {
+                DISPLAY_NAMES[agent_id]: dollars(row["bankroll_after_entry_cents"])
+                for agent_id, row in agents.items()
+            },
+        },
+        "cycles": [
+            {
+                "public": {
+                    "cycle": 1,
+                    "actions": public_actions,
+                    "submitted_count": len(public_actions),
+                    "winner_announced": bool(winners),
+                    "winners": winners,
+                    "dealer_announcement": (
+                        f"Prize split among: {', '.join(winners)}."
+                        if winners
+                        else "No correct answer. Pot rolls forward."
+                    ),
+                },
+                "dealer": dealer_actions,
+            }
+        ],
+        "winners": winners,
+        "payouts": payouts,
+        "payout_each": dollars(event["pot_cents"] // max(1, len(winners))) if winners else 0,
+        "prize": dollars(event["pot_cents"]),
+        "rollover": dollars(event["rollover_out_cents"]),
+        "bankrolls": {
+            DISPLAY_NAMES[agent_id]: dollars(row["bankroll_after_round_cents"])
+            for agent_id, row in agents.items()
+        },
+        "dealer_event": event,
+    }
+
+
+def _autothink_trace(agent_id: str, row: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
+    if agent_id != "dynamic":
+        return {}
+    tier = row["router_tier"]
+    paid = tier in {"high", "xhigh"}
+    return {
+        "cheap_answer": "router baseline",
+        "perturbed_answers": [row["router_tier"], "critical perspective"],
+        "stability": "LOW" if paid else "HIGH",
+        "pay_to_think": paid,
+        "deep_answer": row["submitted_answer"] if paid else None,
+        "changed_answer": paid,
+        "reason": f"Dealer pot ${dollars(event['pot_cents'])} routed to {tier}.",
+    }
+
+
+def _agent_metrics(agent_id: str, row: dict[str, Any]) -> dict[str, Any]:
+    tier = row["router_tier"]
+    return {
+        "cheap_calls": 1 if tier in {"none", "low"} else 0,
+        "perturbation_calls": 2 if agent_id == "dynamic" else 0,
+        "deep_calls": 1 if tier in {"high", "xhigh"} else 0,
+        "deep_triggered": agent_id == "dynamic" and tier in {"high", "xhigh"},
+        "changed_answer": agent_id == "dynamic" and tier in {"high", "xhigh"},
+    }
+
+
+def _update_state_after_event(
+    state: GameState, record: dict[str, Any], event: dict[str, Any]
+) -> None:
+    for row in event["agents"]:
+        name = DISPLAY_NAMES[row["agent_id"]]
+        spent = dollars(row["entry_paid_cents"] + row["reasoning_price_cents"])
+        payout = dollars(row["prize_received_cents"])
+        update_after_round(
+            state.stats[name],
+            {
+                "decision": "ENTER",
+                "spent": spent,
+                "correct": bool(row["correct"]),
+                "submitted": True,
+                "payout": payout,
+                "metrics": _agent_metrics(row["agent_id"], row),
+            },
+        )
+        state.bankrolls[name] = dollars(row["bankroll_after_round_cents"])
+        attach_bankroll(state.stats[name], state.bankrolls[name])
+
+    state.prize_pool = dollars(event["rollover_out_cents"])
+    state.round_index = event["round"]
+    state.history.append(record)
+    if state.round_index >= state.config.n_rounds:
+        state.finished = True
+        record["final_summary"] = summary(
+            list(state.stats.values()), state.stats.get("Dynamic")
+        )

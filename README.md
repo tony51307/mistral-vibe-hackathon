@@ -49,4 +49,24 @@ Then enable `Use Mistral API` in the Streamlit sidebar.
 
 ## AutoThink Boundary
 
-The current `auto_thinking.py` contains a deterministic stub adapter. Replace `StubAutoThinkingAdapter` or add a production adapter later when the real Mistral Vibe AutoThink implementation is ready.
+The Streamlit game uses a deterministic adapter so it remains reproducible and works
+offline. This branch also includes the complete Mistral Vibe CLI with a production
+AutoThink router under `vibe/`. AutoThink probes ambiguous requests at low effort,
+measures answer stability under controlled perturbations, and escalates only when
+the decision is unstable or risky. Trivial prompts use a zero-probe fast path.
+
+Run the integrated CLI and select automatic reasoning:
+
+```bash
+uv run vibe
+# In Vibe: /thinking auto
+```
+
+Run the included routing benchmark and inspect its generated cost, latency, and
+routing report:
+
+```bash
+uv run python scripts/reasoning_arena.py
+```
+
+The latest sample report is committed in `arena-results/report.md`.

@@ -14,6 +14,8 @@ The main claim remains:
 
 > A perturbation-guided dynamic agent can buy expensive reasoning selectively, recovering some benefits of always thinking while spending less reasoning budget.
 
+The reasoning-routing implementation should be compatible with the later `auto_thinking` implementation described in `mistral_vibe_auto_thinking.md`. In this game, `auto_thinking` is the engine that decides when a model should escalate from cheap reasoning to deeper reasoning; the dealer economy is the environment that prices those choices.
+
 ## V1 Constants
 
 Use these defaults for the first implementation:
@@ -62,10 +64,12 @@ Use four seats so the economy matches V1.
 ### 3. Dynamic Pay-to-Think Agent
 
 - Uses the perturbation-guided strategy from `Pay-to-Think_ A Perturbation-Guided Reasoning Router.md`.
+- Uses the `auto_thinking` interface described in `mistral_vibe_auto_thinking.md`.
 - Receives the mandatory dealer-funded router pass.
-- Runs cheap perturbation probes during routing.
+- Runs cheap decision-consistency probes during routing.
 - Chooses one of `none`, `low`, `medium`, `high`, or `xhigh`.
 - Uses deeper reasoning only when instability, problem value, or bankroll state justifies it.
+- For the initial game demo, call a stubbed `auto_thinking` adapter. Replace the adapter internals later with the implementation supplied by the user.
 
 ### 4. Control Agent
 
@@ -163,7 +167,15 @@ The router may see:
 - opponent history
 - available reasoning tiers
 
-The router returns only:
+For the Dynamic Pay-to-Think Agent, this phase should go through the `auto_thinking` adapter. The adapter follows the Vibe AutoThink MVP shape:
+
+1. Produce one cheap baseline decision.
+2. Produce one cheap critical-perspective decision.
+3. Compare structured JSON outputs.
+4. Score agreement or disagreement deterministically.
+5. Escalate only when decisions materially disagree or the situation is high-risk.
+
+The game-facing router returns only:
 
 ```json
 {
@@ -171,7 +183,23 @@ The router returns only:
 }
 ```
 
-The router should not solve the problem. Its cost is infrastructure cost and does not affect game bankroll.
+The router should not submit the final answer. Its cost is infrastructure cost and does not affect game bankroll.
+
+The implementation may also return a private trace for UI and logging:
+
+```json
+{
+  "reasoning_tier": "high",
+  "autothink_level": "HIGH",
+  "decision_agreement": "1/2",
+  "risk": "high",
+  "reason": "answer disagreement and rollover pot",
+  "probe_cost_tokens": 310,
+  "estimated_deep_budget_tokens": 3000
+}
+```
+
+Only `reasoning_tier` affects the economy. Token telemetry is logged separately from game dollars.
 
 ### Phase 5: Reasoning Purchase
 
@@ -274,15 +302,58 @@ No emergency loans, discounted reasoning, or bankroll subsidies exist in V1.
 
 ## Dynamic Router Design
 
-The dynamic agent uses the mandatory router pass to choose a tier, not to directly solve the problem.
+The dynamic agent uses the mandatory router pass to choose a tier, not to directly submit the answer.
+
+The routing layer should be built as an `auto_thinking` adapter so the future implementation can be dropped in without rewriting the game.
+
+Suggested interface:
+
+```python
+class AutoThinkingAdapter:
+    def route(self, context: RoutingContext) -> RoutingDecision:
+        ...
+```
+
+Suggested `RoutingContext` fields:
+
+```text
+agent_id
+category
+problem
+bankroll_after_entry
+pot
+round_number
+public_messages
+opponent_history
+available_reasoning_tiers
+strategy_memory
+```
+
+Suggested `RoutingDecision` fields:
+
+```text
+reasoning_tier
+autothink_level
+decision_agreement
+risk
+reason
+baseline_decision
+critical_perspective_decision
+probe_cost_tokens
+estimated_deep_budget_tokens
+trace
+```
+
+The first implementation can stub or approximate `auto_thinking`; the game should depend only on the interface.
 
 Recommended router flow:
 
 1. Inspect category, pot size, bankroll, public messages, and opponent history.
-2. Run 3-5 cheap perturbation probes on the revealed problem.
-3. Compare answer shape, confidence, and consistency across probes.
-4. Estimate whether the problem is stable or fragile.
-5. Select the cheapest reasoning tier that seems economically justified.
+2. Ask for one cheap baseline routing decision.
+3. Ask for one cheap critical-perspective routing decision.
+4. Compare the two structured decisions.
+5. Estimate action risk from pot size, bankroll pressure, hidden uncertainty, and opponent behavior.
+6. Select the cheapest reasoning tier that seems economically justified.
 
 Suggested tier rule:
 
@@ -290,13 +361,13 @@ Suggested tier rule:
 if bankroll after entry cannot afford higher tiers:
   choose highest affordable tier only when pot is large; otherwise choose none/low
 
-else if perturbation answers strongly agree and confidence is high:
+else if baseline and critical perspective agree and risk is low:
   choose none or low
 
-else if answers disagree and pot is normal:
+else if decisions disagree and pot is normal:
   choose medium or high
 
-else if answers disagree and pot includes rollover:
+else if decisions disagree and pot includes rollover:
   choose high or xhigh
 
 else:
@@ -308,8 +379,12 @@ Router output should include a private trace for the UI:
 ```json
 {
   "reasoning_tier": "high",
+  "autothink_level": "HIGH",
+  "decision_agreement": "1/2",
+  "risk": "high",
   "stability": "low",
-  "probe_answers": ["1/6", "5/33", "5/33", "1/6"],
+  "baseline_decision": "medium",
+  "critical_perspective_decision": "high",
   "economic_reason": "Low stability and rollover pot justify high reasoning."
 }
 ```
@@ -319,6 +394,8 @@ Only `reasoning_tier` affects the game protocol. The rest is for demo explanatio
 ## Reasoning-Tier Mapping
 
 Keep the game protocol independent of exact Mistral API options.
+
+The game should use abstract tiers, while `auto_thinking` maps those tiers to concrete Mistral/Vibe behavior.
 
 Conceptual mapping:
 
@@ -339,6 +416,12 @@ Possible implementation:
 - `medium`: stronger model or larger max tokens.
 - `high`: stronger model with structured reasoning prompt.
 - `xhigh`: strongest prompt plus independent verification call.
+
+AutoThink MVP mapping:
+
+- `LOW`: stable or low-risk decision; choose `none` or `low`.
+- `HIGH`: disagreement or high-risk decision; choose `high` or `xhigh` if affordable.
+- Intermediate game tiers, especially `medium`, can be selected by the economic adapter when the AutoThink signal is not decisive.
 
 Use environment variables:
 
@@ -542,6 +625,7 @@ mistral_hackathon/
   router.py
   metrics.py
   event_log.py
+  auto_thinking.py
   .env
 ```
 
@@ -554,7 +638,8 @@ Responsibilities:
 - `mistral_client.py`: Mistral API wrapper.
 - `problems.py`: problem bank, seeded sampling, answer validation.
 - `prompts.py`: table-talk, router, and answer prompts.
-- `router.py`: perturbation probing and tier selection.
+- `router.py`: game-facing tier selection and affordability checks.
+- `auto_thinking.py`: adapter boundary for the later Vibe AutoThink implementation.
 - `metrics.py`: scoreboard and economy health metrics.
 - `event_log.py`: structured round logs and model telemetry logs.
 
@@ -601,9 +686,12 @@ Responsibilities:
 ### Milestone 5: Dynamic Router
 
 - Add dealer-funded router pass.
-- Add perturbation prompt variants.
-- Compute answer disagreement and confidence signal.
+- Add `auto_thinking.py` adapter with a stub implementation.
+- Add cheap baseline and critical-perspective routing prompts.
+- Compute deterministic decision agreement.
+- Compute action risk from pot, bankroll, rollover, and opponent history.
 - Select one fixed reasoning tier.
+- Preserve compatibility with the future user-provided `auto_thinking` implementation.
 - Store dynamic-agent trace for UI.
 
 ### Milestone 6: Streamlit Demo

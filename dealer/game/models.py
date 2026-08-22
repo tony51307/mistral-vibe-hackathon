@@ -87,6 +87,10 @@ class ProblemBank:
     problems: dict[str, dict[str, Any]]
     sha256: str
     path: Path
+    source_paths: tuple[Path, ...] = ()
+    source_sha256s: dict[str, str] = field(default_factory=dict)
+    source_schema_versions: dict[str, str] = field(default_factory=dict)
+    source_by_problem_id: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -98,6 +102,8 @@ class AgendaRound:
     guessability: str
     reference_reasoning_tier: ReasoningTier | None = None
     round_role: str | None = None
+    source_bank: str | None = None
+    reasoning_profile: str | None = None
 
 
 @dataclass(frozen=True)
@@ -116,6 +122,9 @@ class AgendaCatalog:
     agendas: dict[int, Agenda]
     sha256: str
     path: Path
+    source_paths: tuple[Path, ...] = ()
+    source_sha256s: dict[str, str] = field(default_factory=dict)
+    source_schema_versions: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

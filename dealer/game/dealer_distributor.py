@@ -11,7 +11,12 @@ from .agent_config import AgentCatalog, load_agent_catalog
 from .economy import affordable_tiers, highest_affordable_tier, split_pot
 from .event_log import JsonlEventLog
 from .judge import judge_answer
-from .loaders import load_agendas, load_problem_bank, load_table_modes, public_problem
+from .loaders import (
+    load_agenda_catalogs,
+    load_problem_banks,
+    load_table_modes,
+    public_problem,
+)
 from .models import (
     AgendaCatalog,
     AgendaRound,
@@ -159,8 +164,6 @@ class DealerGame:
         **kwargs: Any,
     ) -> DealerGame:
         roster = agent_catalog.get_roster(roster_id)
-        if agent_catalog.schema_version != agenda_catalog.schema_version:
-            raise ValueError("agent and agenda schema versions must match")
         if "config" in kwargs or "player_ids" in kwargs:
             raise ValueError("agent rosters derive player IDs and GameConfig")
         config = GameConfig.for_table_size(roster.initial_agent_count)
@@ -504,6 +507,8 @@ class DealerGame:
                 else None
             ),
             "hidden_round_role": self._agenda_round.round_role,
+            "hidden_source_bank": self._agenda_round.source_bank,
+            "hidden_reasoning_profile": self._agenda_round.reasoning_profile,
             "correct_answer": self._problem["answer"]["display"],
             "rollover_in_cents": self._rollover_in_cents,
             "entry_total_cents": self._entry_total_cents,
@@ -512,7 +517,9 @@ class DealerGame:
             "winner_ids": self._winner_ids,
             "rollover_out_cents": self.rollover_cents,
             "problem_bank_sha256": self.problem_bank.sha256,
+            "problem_bank_source_sha256s": dict(self.problem_bank.source_sha256s),
             "agenda_sha256": self.agenda_catalog.sha256,
+            "agenda_source_sha256s": dict(self.agenda_catalog.source_sha256s),
             "model_identifier": self.model_identifier,
             "reasoning_mapping_version": REASONING_MAPPING_VERSION,
             "run_seed": self.seed,
@@ -581,8 +588,8 @@ class DealerGame:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate Pay-to-Think dealer inputs")
-    parser.add_argument("--bank", required=True, type=Path)
-    parser.add_argument("--agendas", required=True, type=Path)
+    parser.add_argument("--bank", required=True, type=Path, action="append")
+    parser.add_argument("--agendas", required=True, type=Path, action="append")
     parser.add_argument("--strategy", required=True, type=int)
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--tables", type=Path)
@@ -595,8 +602,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _build_parser().parse_args()
-    bank = load_problem_bank(args.bank)
-    catalog = load_agendas(args.agendas, bank)
+    bank = load_problem_banks(args.bank)
+    catalog = load_agenda_catalogs(args.agendas, bank)
     if args.strategy not in catalog.agendas:
         raise SystemExit(f"unknown strategy {args.strategy}")
     if bool(args.tables) != bool(args.table):
@@ -659,7 +666,9 @@ def main() -> int:
                 "round_count": len(agenda.rounds),
                 "problem_count": len(bank.problems),
                 "problem_bank_sha256": bank.sha256,
+                "problem_bank_sources": sorted(bank.source_sha256s),
                 "agenda_sha256": catalog.sha256,
+                "agenda_sources": sorted(catalog.source_sha256s),
                 "run_seed": args.seed,
                 **table_summary,
                 **agent_summary,

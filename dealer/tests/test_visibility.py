@@ -52,6 +52,8 @@ class VisibilityTests(unittest.TestCase):
             "suggested_reasoning_tier",
             "reference_reasoning_tier",
             "round_role",
+            "source_bank",
+            "reasoning_profile",
             "future_rounds",
         }
         self.assertFalse(forbidden & set(all_keys(payload)))

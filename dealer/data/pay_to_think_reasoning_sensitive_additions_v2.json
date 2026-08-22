@@ -1,0 +1,1131 @@
+{
+  "schema_version": "2.0",
+  "name": "pay_to_think_reasoning_sensitive_additions_v2",
+  "description": "42 additional short-answer problems designed to reduce the advantage of always-none policies. IDs are disjoint from pay_to_think_problem_bank_v1.json.",
+  "agent_visibility": {
+    "show_to_agent": [
+      "id",
+      "category",
+      "prompt_markdown"
+    ],
+    "hide_from_agent": [
+      "answer",
+      "dealer_meta"
+    ]
+  },
+  "validation_contract": {
+    "preferred_submission": {
+      "answer": "single short scalar/text value only"
+    },
+    "numeric": "Parse integer/decimal/fraction when possible; compare to value using abs_tolerance.",
+    "integer": "Parse as an integer and require exact equality.",
+    "normalized_text": "Apply listed normalization operations and compare against accepted strings.",
+    "boolean": "Accept true/false plus the listed yes/no aliases.",
+    "on_parse_failure": "mark_incorrect"
+  },
+  "difficulty_scale": [
+    "trivial",
+    "easy",
+    "medium",
+    "hard",
+    "very_hard"
+  ],
+  "reasoning_tiers": [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "xhigh"
+  ],
+  "reasoning_profiles": [
+    "cheap_capture",
+    "cheap_or_low",
+    "reasoning_sensitive_low",
+    "reasoning_sensitive_medium",
+    "reasoning_sensitive_high",
+    "knowledge_or_high"
+  ],
+  "problems": [
+    {
+      "id": "ptt2_math_001",
+      "category": "math",
+      "subcategory": "derivatives",
+      "prompt_markdown": "Let \\(f(x)=x^x\\) for \\(x>0\\). Find \\(f'(1)\\).",
+      "answer": {
+        "display": "1",
+        "validator": {
+          "kind": "numeric",
+          "value": 1,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "0",
+        "tags": [
+          "short_derivation",
+          "tempting_constant"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_math_002",
+      "category": "math",
+      "subcategory": "limits",
+      "prompt_markdown": "Evaluate \\(\\lim_{x\\to 0}\\frac{1-\\cos x}{x^2}\\).",
+      "answer": {
+        "display": "1/2",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "reasoning_profile": "cheap_or_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "0",
+        "tags": [
+          "classic_but_short",
+          "guessable"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_math_003",
+      "category": "math",
+      "subcategory": "finite_sums",
+      "prompt_markdown": "Evaluate \\(\\sum_{k=1}^{20}(-1)^{k+1}k\\).",
+      "answer": {
+        "display": "-10",
+        "validator": {
+          "kind": "integer",
+          "value": -10
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "10",
+        "tags": [
+          "composition",
+          "sign_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_math_004",
+      "category": "math",
+      "subcategory": "definite_integrals",
+      "prompt_markdown": "Evaluate \\(\\int_0^1 6x(1-x)\\,dx\\).",
+      "answer": {
+        "display": "1",
+        "validator": {
+          "kind": "numeric",
+          "value": 1,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "0",
+        "tags": [
+          "short_integral",
+          "tempting_constant"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_math_005",
+      "category": "math",
+      "subcategory": "limits",
+      "prompt_markdown": "Evaluate \\(\\lim_{n\\to\\infty} n\\left(\\sqrt{n^2+1}-n\\right)\\).",
+      "answer": {
+        "display": "1/2",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "0",
+        "tags": [
+          "rationalization",
+          "cancellation_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_math_006",
+      "category": "math",
+      "subcategory": "algebra",
+      "prompt_markdown": "The roots of \\(x^3-6x^2+11x-6=0\\) are \\(r_1,r_2,r_3\\). Find \\(r_1r_2+r_2r_3+r_3r_1\\).",
+      "answer": {
+        "display": "11",
+        "validator": {
+          "kind": "integer",
+          "value": 11
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "6",
+        "tags": [
+          "vieta",
+          "retrieval_resistant_composition"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_001",
+      "category": "physics",
+      "subcategory": "special_relativity",
+      "prompt_markdown": "Two spacecraft move in opposite directions at \\(0.8c\\) relative to Earth. What is the speed of either spacecraft in the other's frame, as a fraction of \\(c\\)?",
+      "answer": {
+        "display": "40/41",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.975609756097561,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "1.6",
+        "tags": [
+          "relativity",
+          "classical_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_002",
+      "category": "physics",
+      "subcategory": "circuits",
+      "prompt_markdown": "Capacitors of \\(2\\,\\mu\\mathrm F\\) and \\(3\\,\\mu\\mathrm F\\) are connected in series. What is the equivalent capacitance in \\(\\mu\\mathrm F\\)?",
+      "answer": {
+        "display": "1.2",
+        "validator": {
+          "kind": "numeric",
+          "value": 1.2,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "5",
+        "tags": [
+          "series_capacitor",
+          "composition"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_003",
+      "category": "physics",
+      "subcategory": "quantum_mechanics",
+      "prompt_markdown": "A spin-\\(\\tfrac12\\) particle starts in \\(|+z\\rangle\\). You measure \\(S_x\\), then immediately \\(S_z\\). What is the probability of obtaining \\(+x\\) and then \\(+z\\)?",
+      "answer": {
+        "display": "1/4",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.25,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "1/2",
+        "tags": [
+          "sequential_measurement",
+          "conditional_probability"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_004",
+      "category": "physics",
+      "subcategory": "orbital_mechanics",
+      "prompt_markdown": "A satellite is initially in a circular orbit. Its tangential speed is instantaneously reduced by half, with no radial impulse. At that instant, is its radial velocity inward, outward, or zero?",
+      "answer": {
+        "display": "zero",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "zero",
+            "0"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "inward",
+        "tags": [
+          "conceptual_trap",
+          "instantaneous_state"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_005",
+      "category": "physics",
+      "subcategory": "photon_energy",
+      "prompt_markdown": "A photon's wavelength doubles. What is the ratio \\(E_{\\rm new}/E_{\\rm old}\\)?",
+      "answer": {
+        "display": "1/2",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "high",
+        "reasoning_profile": "cheap_capture",
+        "suggested_reasoning_tier": "none",
+        "tempting_shallow_answer": "2",
+        "tags": [
+          "inverse_relation",
+          "guessable"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_phys_006",
+      "category": "physics",
+      "subcategory": "classical_mechanics",
+      "prompt_markdown": "In a 1D perfectly elastic collision, two equal masses collide. The first moves at speed \\(v\\); the second is initially at rest. What is the first mass's speed immediately after the collision, in units of \\(v\\)?",
+      "answer": {
+        "display": "0",
+        "validator": {
+          "kind": "numeric",
+          "value": 0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "1",
+        "tags": [
+          "elastic_collision",
+          "zero_answer"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_001",
+      "category": "computer_science",
+      "subcategory": "cache",
+      "prompt_markdown": "A machine has 36-bit byte addresses and a 16 KiB, 4-way set-associative cache with 32-byte lines. How many tag bits are stored per cache line?",
+      "answer": {
+        "display": "24",
+        "validator": {
+          "kind": "integer",
+          "value": 24
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "19",
+        "tags": [
+          "cache_geometry",
+          "multi_step"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_002",
+      "category": "computer_science",
+      "subcategory": "virtual_memory",
+      "prompt_markdown": "A system uses 48-bit virtual addresses and 16 KiB pages. How many bits are in the virtual page number?",
+      "answer": {
+        "display": "34",
+        "validator": {
+          "kind": "integer",
+          "value": 34
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "36",
+        "tags": [
+          "address_decomposition"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_003",
+      "category": "computer_science",
+      "subcategory": "cache",
+      "prompt_markdown": "A 32-bit machine has a 64 KiB direct-mapped cache with 64-byte lines. How many tag bits are required?",
+      "answer": {
+        "display": "16",
+        "validator": {
+          "kind": "integer",
+          "value": 16
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "10",
+        "tags": [
+          "cache_geometry",
+          "multi_step"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_004",
+      "category": "computer_science",
+      "subcategory": "number_representation",
+      "prompt_markdown": "Interpret the 8-bit two's-complement bit pattern \\(10000000_2\\) as a signed decimal integer.",
+      "answer": {
+        "display": "-128",
+        "validator": {
+          "kind": "integer",
+          "value": -128
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "reasoning_profile": "cheap_capture",
+        "suggested_reasoning_tier": "none",
+        "tempting_shallow_answer": "128",
+        "tags": [
+          "sign_bit_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_005",
+      "category": "computer_science",
+      "subcategory": "memory_layout",
+      "prompt_markdown": "A zero-indexed row-major array has shape \\(4\\times5\\). What is the zero-based linear index of element \\(A[2][3]\\)?",
+      "answer": {
+        "display": "13",
+        "validator": {
+          "kind": "integer",
+          "value": 13
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "10",
+        "tags": [
+          "row_major",
+          "short_composition"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_cs_006",
+      "category": "computer_science",
+      "subcategory": "floating_point",
+      "prompt_markdown": "What is the smallest positive integer that IEEE-754 binary64 cannot represent exactly?",
+      "answer": {
+        "display": "9007199254740993",
+        "validator": {
+          "kind": "integer",
+          "value": 9007199254740993
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "knowledge_or_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "9007199254740992",
+        "tags": [
+          "binary64",
+          "precision_boundary"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_001",
+      "category": "algorithms",
+      "subcategory": "complexity",
+      "prompt_markdown": "What is the asymptotic time complexity of: `for (i=1; i<n; i*=2) for (j=0; j<i; ++j) work();`?",
+      "answer": {
+        "display": "Θ(n)",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "θ(n)",
+            "theta(n)",
+            "o(n)"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "O(n log n)",
+        "tags": [
+          "geometric_sum",
+          "nested_loop_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_002",
+      "category": "algorithms",
+      "subcategory": "merge",
+      "prompt_markdown": "Two sorted arrays contain 19 and 13 elements. What is the maximum number of element comparisons needed to merge them?",
+      "answer": {
+        "display": "31",
+        "validator": {
+          "kind": "integer",
+          "value": 31
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "32",
+        "tags": [
+          "merge_bound",
+          "parameterized"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_003",
+      "category": "algorithms",
+      "subcategory": "recurrences",
+      "prompt_markdown": "Solve the asymptotic recurrence \\(T(n)=T(n/2)+1\\).",
+      "answer": {
+        "display": "Θ(log n)",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "θ(log n)",
+            "theta(log n)",
+            "θ(logn)",
+            "theta(logn)",
+            "o(log n)"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "O(n)",
+        "tags": [
+          "recurrence"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_004",
+      "category": "algorithms",
+      "subcategory": "graphs",
+      "prompt_markdown": "A DAG on 8 vertices has exactly one topological ordering and contains every edge consistent with that ordering. How many edges does it have?",
+      "answer": {
+        "display": "28",
+        "validator": {
+          "kind": "integer",
+          "value": 28
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "7",
+        "tags": [
+          "complete_dag",
+          "counting"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_005",
+      "category": "algorithms",
+      "subcategory": "heaps",
+      "prompt_markdown": "A max-heap stored as `[9,7,8,1,2,3]` inserts the key `10`. How many parent-child swaps occur during insertion?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "1",
+        "tags": [
+          "heap_simulation"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_alg_006",
+      "category": "algorithms",
+      "subcategory": "binary_search",
+      "prompt_markdown": "For standard binary search on a sorted array of 100 elements, what is the maximum number of key comparisons in a successful search?",
+      "answer": {
+        "display": "7",
+        "validator": {
+          "kind": "integer",
+          "value": 7
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "6",
+        "tags": [
+          "binary_search",
+          "off_by_one"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_001",
+      "category": "probability",
+      "subcategory": "conditional_probability",
+      "prompt_markdown": "Choose one of two boxes uniformly. Box A has 2 red and 1 blue ball; Box B has 1 red and 2 blue. A red ball is drawn. Without replacement, what is the probability the next ball from the same box is red?",
+      "answer": {
+        "display": "1/3",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.3333333333333333,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "1/2",
+        "tags": [
+          "bayes",
+          "conditional_chain"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_002",
+      "category": "probability",
+      "subcategory": "stopping_times",
+      "prompt_markdown": "A fair coin is tossed repeatedly until the pattern HTH first appears. What is the expected number of tosses?",
+      "answer": {
+        "display": "10",
+        "validator": {
+          "kind": "numeric",
+          "value": 10,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "8",
+        "tags": [
+          "pattern_waiting_time",
+          "overlap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_003",
+      "category": "probability",
+      "subcategory": "conditional_probability",
+      "prompt_markdown": "Three fair coins are tossed. Given that at least one is heads, what is the probability that exactly one is heads?",
+      "answer": {
+        "display": "3/7",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.42857142857142855,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "1/2",
+        "tags": [
+          "conditioning",
+          "sample_space"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_004",
+      "category": "probability",
+      "subcategory": "cards",
+      "prompt_markdown": "Two cards are drawn without replacement from a standard 52-card deck. What is the probability that they have the same suit?",
+      "answer": {
+        "display": "4/17",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.23529411764705882,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "1/4",
+        "tags": [
+          "conditional_counting"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_005",
+      "category": "probability",
+      "subcategory": "geometric_distribution",
+      "prompt_markdown": "Independent trials succeed with probability \\(1/4\\). What is the expected number of failures before the first success?",
+      "answer": {
+        "display": "3",
+        "validator": {
+          "kind": "numeric",
+          "value": 3,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "reasoning_profile": "cheap_or_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "4",
+        "tags": [
+          "geometric_distribution"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_prob_006",
+      "category": "probability",
+      "subcategory": "stopping_times",
+      "prompt_markdown": "A fair six-sided die is rolled until the first 6 appears. What is the probability that the number of rolls is odd?",
+      "answer": {
+        "display": "6/11",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5454545454545454,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "1/2",
+        "tags": [
+          "geometric_series",
+          "parity"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_001",
+      "category": "logic",
+      "subcategory": "implication",
+      "prompt_markdown": "For Boolean variables \\(A,B,C\\), how many assignments satisfy \\((A\\to B)\\land(B\\to C)\\land\\neg(A\\to C)\\)?",
+      "answer": {
+        "display": "0",
+        "validator": {
+          "kind": "integer",
+          "value": 0
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "1",
+        "tags": [
+          "transitivity",
+          "zero_answer",
+          "trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_002",
+      "category": "logic",
+      "subcategory": "counting_models",
+      "prompt_markdown": "How many assignments of Boolean variables \\(A,B,C\\) satisfy \\((A\\lor B)\\land(\\neg A\\lor C)\\)?",
+      "answer": {
+        "display": "4",
+        "validator": {
+          "kind": "integer",
+          "value": 4
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "3",
+        "tags": [
+          "sat_counting"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_003",
+      "category": "logic",
+      "subcategory": "parity",
+      "prompt_markdown": "How many assignments of four Boolean variables make their XOR true?",
+      "answer": {
+        "display": "8",
+        "validator": {
+          "kind": "integer",
+          "value": 8
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "reasoning_profile": "cheap_capture",
+        "suggested_reasoning_tier": "none",
+        "tempting_shallow_answer": "4",
+        "tags": [
+          "parity"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_004",
+      "category": "logic",
+      "subcategory": "implication",
+      "prompt_markdown": "How many Boolean assignments satisfy \\(A\\to B\\), \\(B\\to C\\), \\(C\\to D\\), and \\(D\\to A\\) simultaneously?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "4",
+        "tags": [
+          "cycle",
+          "model_counting"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_005",
+      "category": "logic",
+      "subcategory": "combinatorial_logic",
+      "prompt_markdown": "Exactly two of four Boolean variables must be true. How many satisfying assignments are there?",
+      "answer": {
+        "display": "6",
+        "validator": {
+          "kind": "integer",
+          "value": 6
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "cheap_or_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "4",
+        "tags": [
+          "choose_two"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_logic_006",
+      "category": "logic",
+      "subcategory": "equivalences",
+      "prompt_markdown": "How many assignments of \\(A,B,C,D\\) satisfy \\(A\\leftrightarrow B\\), \\(B\\oplus C\\), and \\(C\\leftrightarrow D\\)?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "4",
+        "tags": [
+          "constraint_propagation"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_001",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "percentages",
+      "prompt_markdown": "A price increases by 25%. By what percentage must the new price decrease to return to the original price?",
+      "answer": {
+        "display": "20%",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "20%",
+            "20 percent",
+            "20"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "25",
+        "tags": [
+          "percentage_reversal",
+          "cognitive_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_002",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "average_speed",
+      "prompt_markdown": "A car travels the same distance at 72 mph and 48 mph. What is its average speed for the whole trip, in mph?",
+      "answer": {
+        "display": "57.6",
+        "validator": {
+          "kind": "numeric",
+          "value": 57.6,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "60",
+        "tags": [
+          "harmonic_mean",
+          "arithmetic_mean_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_003",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "work_rate",
+      "prompt_markdown": "One worker finishes a job in 4 hours and another in 6 hours. Working together at constant rates, how many hours do they need?",
+      "answer": {
+        "display": "2.4",
+        "validator": {
+          "kind": "numeric",
+          "value": 2.4,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_low",
+        "suggested_reasoning_tier": "low",
+        "tempting_shallow_answer": "5",
+        "tags": [
+          "work_rate"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_004",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "spatial_counting",
+      "prompt_markdown": "A \\(4\\times4\\times4\\) cube is painted on all six outer faces and cut into unit cubes. How many unit cubes have exactly two painted faces?",
+      "answer": {
+        "display": "24",
+        "validator": {
+          "kind": "integer",
+          "value": 24
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "8",
+        "tags": [
+          "painted_cube",
+          "spatial"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_005",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "clock",
+      "prompt_markdown": "At exactly 3:15, what is the smaller angle in degrees between the hour and minute hands of an analog clock?",
+      "answer": {
+        "display": "7.5",
+        "validator": {
+          "kind": "numeric",
+          "value": 7.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "reasoning_profile": "reasoning_sensitive_high",
+        "suggested_reasoning_tier": "high",
+        "tempting_shallow_answer": "0",
+        "tags": [
+          "clock_angle",
+          "moving_hour_hand_trap"
+        ]
+      }
+    },
+    {
+      "id": "ptt2_quant_006",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "rate",
+      "prompt_markdown": "A 120 m train moving at 60 km/h completely passes a 180 m platform. How many seconds does this take?",
+      "answer": {
+        "display": "18",
+        "validator": {
+          "kind": "numeric",
+          "value": 18,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "reasoning_profile": "reasoning_sensitive_medium",
+        "suggested_reasoning_tier": "medium",
+        "tempting_shallow_answer": "10.8",
+        "tags": [
+          "unit_conversion",
+          "relative_distance"
+        ]
+      }
+    }
+  ]
+}

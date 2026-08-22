@@ -72,7 +72,8 @@ The roster fixes player IDs, profile bindings, the initial seat count, and a rec
 The host may override a roster recommendation with any registered positive
 strategy number. Strategies 6–10 exercise the dynamic-edge showcase agendas;
 for example, pass `strategy_number=9` to compare the agents on the reasoning
-tier ladder.
+tier ladder. Strategies 11–15 require both problem banks and both agenda
+catalogs to be loaded with `load_problem_banks` and `load_agenda_catalogs`.
 
 ## Resolve an LLM profile
 

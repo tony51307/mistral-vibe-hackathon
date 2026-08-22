@@ -1,6 +1,6 @@
 # Pay-to-Think dealer core
 
-This directory contains the deterministic V1 dealer boundary for the hackathon game. It loads the canonical problem bank, follows one fixed 25-round agenda, enforces the game economy and phase order, judges short answers without an LLM, and writes one reproducible JSONL record per completed round.
+This directory contains the deterministic dealer boundary for the hackathon game. It can merge the V1 and reasoning-sensitive V2 problem banks, follows one fixed 25-round agenda, enforces the game economy and phase order, judges short answers without an LLM, and writes one reproducible JSONL record per completed round.
 
 Provider calls are intentionally not implemented here. Routers and solvers are injected into `DealerGame`, so a Mistral adapter can be added without giving model-facing code access to answer keys or dealer metadata.
 
@@ -16,7 +16,7 @@ game/
   models.py              typed state and configuration
   reasoning_provider.py  abstract router/solver adapter boundary
   rotation.py            fixed-agenda problem cursor
-data/                     canonical V1 bank and ten agendas
+data/                     V1/V2 banks and V1/V3 agenda catalogs (15 strategies)
 docs/                     source implementation guide
 agents/                   LLM/deterministic profiles and 6–10-seat rosters
 tables/                   2-to-10-agent economy instructions and presets
@@ -42,6 +42,21 @@ Validate the canonical files and select an agenda without starting provider call
   --tables tables/table_modes_v1.yaml \
   --table baseline \
   --strategy 3 \
+  --seed 260822 \
+  --validate-only
+```
+
+Validate a mixed-bank V3 strategy by repeating `--bank` and `--agendas`:
+
+```bash
+.venv/bin/python -m game.dealer_distributor \
+  --bank data/pay_to_think_problem_bank_v1.json \
+  --bank data/pay_to_think_reasoning_sensitive_additions_v2.json \
+  --agendas data/pay_to_think_agendas_v1.yaml \
+  --agendas data/pay_to_think_mixed_old_new_agendas_v3.yaml \
+  --tables tables/table_modes_v1.yaml \
+  --table tournament \
+  --strategy 12 \
   --seed 260822 \
   --validate-only
 ```
@@ -98,11 +113,19 @@ Use them for demos and stress tests; pair them with seeded mixed/random agendas
 before making comparative or scientific claims. Select one with `--strategy 6`
 through `--strategy 10` while continuing to use the canonical agenda file.
 
+Strategies 11–15 combine both problem banks: `dynamic_margin_interleave`,
+`middle_tier_harvest`, `anti_shallow_trap`,
+`bankroll_preserve_then_convert`, and `five_wave_dynamic_test`. Load both bank
+and agenda files with `load_problem_banks` and `load_agenda_catalogs` (or repeat
+the corresponding CLI flags). The supplied reasoning profiles are hand-authored
+hypotheses and require model-specific calibration before scientific use.
+
 ## Invariants
 
-- The problem bank is authoritative. Agenda category, difficulty, and guessability must match it exactly.
+- Each source problem bank is authoritative. Agenda source, category, difficulty, guessability, reasoning profile, and V2 reference tier must match it exactly.
+- Problem IDs and strategy numbers must be unique across merged sources; combined hashes are independent of caller ordering.
 - Category reveal omits problem identity; problem reveal is built from a three-field public whitelist.
-- The five hidden metadata/answer fields are covered by recursive visibility tests.
+- Source provenance and all reasoning/difficulty metadata remain outside the agent payload and are covered by visibility tests.
 - Entry and pot amounts use integer cents. Reasoning spend is burned, never added to the pot.
 - Supported table modes use 2–10 initial agents and freeze `H = $3 × N0` for the season.
 - Split remainders roll forward instead of being assigned randomly.

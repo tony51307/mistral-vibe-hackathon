@@ -1,0 +1,1221 @@
+{
+  "schema_version": "1.0",
+  "name": "pay_to_think_problem_bank_non_math_non_physics_v1",
+  "description": "50 short-answer problems: 10 each from the five non-math/non-physics categories in the current dealer taxonomy.",
+  "agent_visibility": {
+    "show_to_agent": [
+      "id",
+      "category",
+      "prompt_markdown"
+    ],
+    "hide_from_agent": [
+      "answer",
+      "dealer_meta"
+    ]
+  },
+  "validation_contract": {
+    "preferred_submission": {
+      "answer": "single short scalar/text value only"
+    },
+    "numeric": "Parse integer/decimal/fraction when possible; compare to value using abs_tolerance.",
+    "integer": "Parse as an integer and require exact equality.",
+    "normalized_text": "Apply listed normalization operations and compare against accepted strings.",
+    "boolean": "Accept true/false plus the listed yes/no aliases.",
+    "on_parse_failure": "mark_incorrect"
+  },
+  "difficulty_scale": [
+    "trivial",
+    "easy",
+    "medium",
+    "hard",
+    "very_hard"
+  ],
+  "reasoning_tiers": [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "xhigh"
+  ],
+  "categories": [
+    "computer_science",
+    "algorithms",
+    "probability",
+    "logic",
+    "general_quantitative_reasoning"
+  ],
+  "problems": [
+    {
+      "id": "cs_001",
+      "category": "computer_science",
+      "subcategory": "networking",
+      "prompt_markdown": "How many bits are in an IPv4 address?",
+      "answer": {
+        "display": "32",
+        "validator": {
+          "kind": "integer",
+          "value": 32
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "cs_002",
+      "category": "computer_science",
+      "subcategory": "cryptography",
+      "prompt_markdown": "How many output bits does SHA-256 produce?",
+      "answer": {
+        "display": "256",
+        "validator": {
+          "kind": "integer",
+          "value": 256
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "cs_003",
+      "category": "computer_science",
+      "subcategory": "number_representation",
+      "prompt_markdown": "Convert the binary number $101101_2$ to decimal.",
+      "answer": {
+        "display": "45",
+        "validator": {
+          "kind": "integer",
+          "value": 45
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "cs_004",
+      "category": "computer_science",
+      "subcategory": "text_encoding",
+      "prompt_markdown": "In UTF-8, how many bytes are used to encode the Unicode character U+1F600 (😀)?",
+      "answer": {
+        "display": "4",
+        "validator": {
+          "kind": "integer",
+          "value": 4
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "fact",
+          "encoding"
+        ]
+      }
+    },
+    {
+      "id": "cs_005",
+      "category": "computer_science",
+      "subcategory": "virtual_memory",
+      "prompt_markdown": "A system uses 4 KiB pages. How many page-offset bits are needed?",
+      "answer": {
+        "display": "12",
+        "validator": {
+          "kind": "integer",
+          "value": 12
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "cs_006",
+      "category": "computer_science",
+      "subcategory": "cache",
+      "prompt_markdown": "A 32 KiB cache uses 64-byte cache lines. How many cache lines does it contain?",
+      "answer": {
+        "display": "512",
+        "validator": {
+          "kind": "integer",
+          "value": 512
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "cs_007",
+      "category": "computer_science",
+      "subcategory": "number_representation",
+      "prompt_markdown": "Interpret the 8-bit two's-complement bit pattern $11111101_2$ as a signed decimal integer.",
+      "answer": {
+        "display": "-3",
+        "validator": {
+          "kind": "integer",
+          "value": -3
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "cs_008",
+      "category": "computer_science",
+      "subcategory": "floating_point",
+      "prompt_markdown": "How many bits of significand precision does IEEE-754 binary64 provide, including the implicit leading bit?",
+      "answer": {
+        "display": "53",
+        "validator": {
+          "kind": "integer",
+          "value": 53
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "fact",
+          "floating_point"
+        ]
+      }
+    },
+    {
+      "id": "cs_009",
+      "category": "computer_science",
+      "subcategory": "cache",
+      "prompt_markdown": "A 32 KiB, 8-way set-associative cache has 64-byte lines. How many set-index bits are required?",
+      "answer": {
+        "display": "6",
+        "validator": {
+          "kind": "integer",
+          "value": 6
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "architecture",
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "cs_010",
+      "category": "computer_science",
+      "subcategory": "virtual_memory",
+      "prompt_markdown": "A machine has 48-bit virtual addresses and 4 KiB pages. How many bits are in the virtual page number?",
+      "answer": {
+        "display": "36",
+        "validator": {
+          "kind": "integer",
+          "value": 36
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "architecture",
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "alg_001",
+      "category": "algorithms",
+      "subcategory": "data_structures",
+      "prompt_markdown": "A stack removes items in what order: FIFO or LIFO?",
+      "answer": {
+        "display": "LIFO",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "lifo"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "alg_002",
+      "category": "algorithms",
+      "subcategory": "graphs",
+      "prompt_markdown": "Does breadth-first search find shortest paths in an unweighted graph?",
+      "answer": {
+        "display": "Yes",
+        "validator": {
+          "kind": "boolean",
+          "value": true,
+          "accepted_text": [
+            "true",
+            "yes"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "alg_003",
+      "category": "algorithms",
+      "subcategory": "search",
+      "prompt_markdown": "What is the worst-case time complexity of binary search on a sorted array?",
+      "answer": {
+        "display": "O(log n)",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "o(log n)",
+            "o(logn)"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "complexity"
+        ]
+      }
+    },
+    {
+      "id": "alg_004",
+      "category": "algorithms",
+      "subcategory": "graphs",
+      "prompt_markdown": "How many edges are in the complete undirected graph $K_{10}$?",
+      "answer": {
+        "display": "45",
+        "validator": {
+          "kind": "integer",
+          "value": 45
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "calculation"
+        ]
+      }
+    },
+    {
+      "id": "alg_005",
+      "category": "algorithms",
+      "subcategory": "shortest_paths",
+      "prompt_markdown": "Is standard Dijkstra's algorithm guaranteed to be correct when an edge has negative weight?",
+      "answer": {
+        "display": "No",
+        "validator": {
+          "kind": "boolean",
+          "value": false,
+          "accepted_text": [
+            "false",
+            "no"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "concept"
+        ]
+      }
+    },
+    {
+      "id": "alg_006",
+      "category": "algorithms",
+      "subcategory": "shortest_paths",
+      "prompt_markdown": "For a graph with 8 vertices, how many full edge-relaxation passes are sufficient in the standard Bellman-Ford algorithm before the negative-cycle check?",
+      "answer": {
+        "display": "7",
+        "validator": {
+          "kind": "integer",
+          "value": 7
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "alg_007",
+      "category": "algorithms",
+      "subcategory": "recurrences",
+      "prompt_markdown": "Solve the asymptotic recurrence $T(n)=2T(n/2)+n$.",
+      "answer": {
+        "display": "Θ(n log n)",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "θ(n log n)",
+            "theta(n log n)",
+            "θ(nlogn)",
+            "theta(nlogn)"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "master_theorem"
+        ]
+      }
+    },
+    {
+      "id": "alg_008",
+      "category": "algorithms",
+      "subcategory": "minimum_spanning_tree",
+      "prompt_markdown": "If every edge weight in a connected undirected graph is distinct, is its minimum spanning tree unique?",
+      "answer": {
+        "display": "Yes",
+        "validator": {
+          "kind": "boolean",
+          "value": true,
+          "accepted_text": [
+            "true",
+            "yes"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "theorem"
+        ]
+      }
+    },
+    {
+      "id": "alg_009",
+      "category": "algorithms",
+      "subcategory": "topological_sort",
+      "prompt_markdown": "A DAG has vertices $A,B,C,D$ and edges $A\\to C$, $B\\to C$, and $C\\to D$. How many topological orderings does it have?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "counting"
+        ]
+      }
+    },
+    {
+      "id": "alg_010",
+      "category": "algorithms",
+      "subcategory": "merge",
+      "prompt_markdown": "Two sorted arrays contain 7 and 5 elements. What is the maximum number of element comparisons needed to merge them?",
+      "answer": {
+        "display": "11",
+        "validator": {
+          "kind": "integer",
+          "value": 11
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    {
+      "id": "prob_001",
+      "category": "probability",
+      "subcategory": "basic_probability",
+      "prompt_markdown": "A fair coin is tossed once. What is the probability of heads?",
+      "answer": {
+        "display": "1/2",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "guessable"
+        ]
+      }
+    },
+    {
+      "id": "prob_002",
+      "category": "probability",
+      "subcategory": "expectation",
+      "prompt_markdown": "What is the expected value of a fair six-sided die?",
+      "answer": {
+        "display": "3.5",
+        "validator": {
+          "kind": "numeric",
+          "value": 3.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "fact"
+        ]
+      }
+    },
+    {
+      "id": "prob_003",
+      "category": "probability",
+      "subcategory": "dice",
+      "prompt_markdown": "Two fair six-sided dice are rolled. What is the probability that their sum is 7?",
+      "answer": {
+        "display": "1/6",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.16666666666666666,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "classic"
+        ]
+      }
+    },
+    {
+      "id": "prob_004",
+      "category": "probability",
+      "subcategory": "cards",
+      "prompt_markdown": "Two cards are drawn uniformly from a standard 52-card deck without replacement. What is the probability that both are aces?",
+      "answer": {
+        "display": "1/221",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.004524886877828055,
+          "abs_tolerance": 1e-10,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "low",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "combinatorics"
+        ]
+      }
+    },
+    {
+      "id": "prob_005",
+      "category": "probability",
+      "subcategory": "conditional_probability",
+      "prompt_markdown": "In the standard Monty Hall problem, what is the probability of winning the car if you always switch?",
+      "answer": {
+        "display": "2/3",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.6666666666666666,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "classic",
+          "counterintuitive"
+        ]
+      }
+    },
+    {
+      "id": "prob_006",
+      "category": "probability",
+      "subcategory": "variance",
+      "prompt_markdown": "For a Bernoulli random variable with $p=1/2$, what is its variance?",
+      "answer": {
+        "display": "1/4",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.25,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "formula"
+        ]
+      }
+    },
+    {
+      "id": "prob_007",
+      "category": "probability",
+      "subcategory": "bayes",
+      "prompt_markdown": "A disease affects 1% of people. A test has 99% sensitivity and a 1% false-positive rate. Given a positive test, what is the probability the person has the disease?",
+      "answer": {
+        "display": "1/2",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.5,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "bayes",
+          "surprising"
+        ]
+      }
+    },
+    {
+      "id": "prob_008",
+      "category": "probability",
+      "subcategory": "random_permutations",
+      "prompt_markdown": "A permutation of 100 distinct objects is chosen uniformly at random. What is the expected number of fixed points?",
+      "answer": {
+        "display": "1",
+        "validator": {
+          "kind": "numeric",
+          "value": 1.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "high",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "surprising",
+          "linearity_of_expectation"
+        ]
+      }
+    },
+    {
+      "id": "prob_009",
+      "category": "probability",
+      "subcategory": "random_permutations",
+      "prompt_markdown": "A permutation of 6 objects is chosen uniformly at random. What is the probability that it has no fixed points?",
+      "answer": {
+        "display": "53/144",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.3680555555555556,
+          "abs_tolerance": 1e-10,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "derangements"
+        ]
+      }
+    },
+    {
+      "id": "prob_010",
+      "category": "probability",
+      "subcategory": "stopping_times",
+      "prompt_markdown": "A fair coin is tossed repeatedly until two consecutive heads first appear. What is the expected number of tosses?",
+      "answer": {
+        "display": "6",
+        "validator": {
+          "kind": "numeric",
+          "value": 6.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "stopping_time",
+          "classic"
+        ]
+      }
+    },
+    {
+      "id": "logic_001",
+      "category": "logic",
+      "subcategory": "propositional_logic",
+      "prompt_markdown": "Is $P\\lor\\neg P$ always true?",
+      "answer": {
+        "display": "Yes",
+        "validator": {
+          "kind": "boolean",
+          "value": true,
+          "accepted_text": [
+            "true",
+            "yes"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "tautology"
+        ]
+      }
+    },
+    {
+      "id": "logic_002",
+      "category": "logic",
+      "subcategory": "propositional_logic",
+      "prompt_markdown": "Is $P\\land\\neg P$ satisfiable?",
+      "answer": {
+        "display": "No",
+        "validator": {
+          "kind": "boolean",
+          "value": false,
+          "accepted_text": [
+            "false",
+            "no"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "contradiction"
+        ]
+      }
+    },
+    {
+      "id": "logic_003",
+      "category": "logic",
+      "subcategory": "implication",
+      "prompt_markdown": "If $P$ is true and $Q$ is false, what is the truth value of $P\\to Q$?",
+      "answer": {
+        "display": "False",
+        "validator": {
+          "kind": "boolean",
+          "value": false,
+          "accepted_text": [
+            "false",
+            "no"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "truth_table"
+        ]
+      }
+    },
+    {
+      "id": "logic_004",
+      "category": "logic",
+      "subcategory": "quantifiers",
+      "prompt_markdown": "Which quantifier begins the logical negation of $\\forall x\\,P(x)$: $\\forall$ or $\\exists$?",
+      "answer": {
+        "display": "∃",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "∃",
+            "exists",
+            "existential"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "quantifiers"
+        ]
+      }
+    },
+    {
+      "id": "logic_005",
+      "category": "logic",
+      "subcategory": "counting_models",
+      "prompt_markdown": "For Boolean variables $A$ and $B$, how many assignments make exactly one of them true?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "counting"
+        ]
+      }
+    },
+    {
+      "id": "logic_006",
+      "category": "logic",
+      "subcategory": "implication",
+      "prompt_markdown": "How many Boolean assignments satisfy all three formulas $A\\to B$, $B\\to C$, and $C\\to A$?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "low",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "counting_models"
+        ]
+      }
+    },
+    {
+      "id": "logic_007",
+      "category": "logic",
+      "subcategory": "sat",
+      "prompt_markdown": "How many Boolean assignments satisfy $(A\\lor B)\\land(\\neg A\\lor B)$?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "integer",
+          "value": 2
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "sat",
+          "simplification"
+        ]
+      }
+    },
+    {
+      "id": "logic_008",
+      "category": "logic",
+      "subcategory": "parity",
+      "prompt_markdown": "For Boolean variables $A,B,C$, how many of the 8 assignments make $A\\oplus B\\oplus C$ true?",
+      "answer": {
+        "display": "4",
+        "validator": {
+          "kind": "integer",
+          "value": 4
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "xor",
+          "counting"
+        ]
+      }
+    },
+    {
+      "id": "logic_009",
+      "category": "logic",
+      "subcategory": "counting_models",
+      "prompt_markdown": "For four Boolean variables, how many assignments have either exactly one true variable or exactly one false variable?",
+      "answer": {
+        "display": "8",
+        "validator": {
+          "kind": "integer",
+          "value": 8
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "counting"
+        ]
+      }
+    },
+    {
+      "id": "logic_010",
+      "category": "logic",
+      "subcategory": "knights_and_knaves",
+      "prompt_markdown": "On an island, knights always tell the truth and knaves always lie. A says, “B is a knave.” B says, “A and I are different types.” What type is A?",
+      "answer": {
+        "display": "Knave",
+        "validator": {
+          "kind": "normalized_text",
+          "accepted": [
+            "knave",
+            "liar"
+          ],
+          "normalization": [
+            "trim",
+            "unicode_nfkc",
+            "casefold",
+            "remove_math_delimiters",
+            "collapse_whitespace"
+          ]
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "low",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "puzzle"
+        ]
+      }
+    },
+    {
+      "id": "quant_001",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "arithmetic",
+      "prompt_markdown": "What is $1+2$?",
+      "answer": {
+        "display": "3",
+        "validator": {
+          "kind": "numeric",
+          "value": 3.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "guessable"
+        ]
+      }
+    },
+    {
+      "id": "quant_002",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "percentages",
+      "prompt_markdown": "What is 15% of 200?",
+      "answer": {
+        "display": "30",
+        "validator": {
+          "kind": "numeric",
+          "value": 30.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "trivial",
+        "guessability": "high",
+        "suggested_reasoning_tier": "none",
+        "tags": [
+          "arithmetic"
+        ]
+      }
+    },
+    {
+      "id": "quant_003",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "ratios",
+      "prompt_markdown": "Two quantities are in the ratio $2:3$ and sum to 25. What is the smaller quantity?",
+      "answer": {
+        "display": "10",
+        "validator": {
+          "kind": "numeric",
+          "value": 10.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "ratio"
+        ]
+      }
+    },
+    {
+      "id": "quant_004",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "rate",
+      "prompt_markdown": "A car travels at 60 miles per hour for 2.5 hours. How many miles does it travel?",
+      "answer": {
+        "display": "150",
+        "validator": {
+          "kind": "numeric",
+          "value": 150.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "easy",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "rate"
+        ]
+      }
+    },
+    {
+      "id": "quant_005",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "percentages",
+      "prompt_markdown": "A price starts at $100, rises by 20%, then falls by 20%. What is the final price in dollars?",
+      "answer": {
+        "display": "96",
+        "validator": {
+          "kind": "numeric",
+          "value": 96.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "counterintuitive"
+        ]
+      }
+    },
+    {
+      "id": "quant_006",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "work_rate",
+      "prompt_markdown": "Alice can finish a job in 6 hours and Bob in 3 hours. Working together at constant rates, how many hours do they need?",
+      "answer": {
+        "display": "2",
+        "validator": {
+          "kind": "numeric",
+          "value": 2.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "medium",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "work_rate"
+        ]
+      }
+    },
+    {
+      "id": "quant_007",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "algebra_puzzle",
+      "prompt_markdown": "A bat and a ball cost $1.10 total. The bat costs $1.00 more than the ball. How many dollars does the ball cost?",
+      "answer": {
+        "display": "0.05",
+        "validator": {
+          "kind": "numeric",
+          "value": 0.05,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "high",
+        "suggested_reasoning_tier": "medium",
+        "tags": [
+          "cognitive_reflection"
+        ]
+      }
+    },
+    {
+      "id": "quant_008",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "exponential_growth",
+      "prompt_markdown": "A patch of lily pads doubles in area every day. It covers the whole lake on day 48. On what day was the lake half covered?",
+      "answer": {
+        "display": "47",
+        "validator": {
+          "kind": "integer",
+          "value": 47
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "hard",
+        "guessability": "high",
+        "suggested_reasoning_tier": "low",
+        "tags": [
+          "cognitive_reflection"
+        ]
+      }
+    },
+    {
+      "id": "quant_009",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "average_speed",
+      "prompt_markdown": "A car travels the same distance out at 60 mph and back at 40 mph. What is its average speed for the entire trip, in mph?",
+      "answer": {
+        "display": "48",
+        "validator": {
+          "kind": "numeric",
+          "value": 48.0,
+          "abs_tolerance": 1e-09,
+          "allow_fraction": true
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "harmonic_mean"
+        ]
+      }
+    },
+    {
+      "id": "quant_010",
+      "category": "general_quantitative_reasoning",
+      "subcategory": "spatial_counting",
+      "prompt_markdown": "A $3\\times3\\times3$ cube is painted on all six outer faces and cut into 27 unit cubes. How many unit cubes have exactly two painted faces?",
+      "answer": {
+        "display": "12",
+        "validator": {
+          "kind": "integer",
+          "value": 12
+        }
+      },
+      "dealer_meta": {
+        "difficulty": "very_hard",
+        "guessability": "medium",
+        "suggested_reasoning_tier": "high",
+        "tags": [
+          "spatial_reasoning"
+        ]
+      }
+    }
+  ]
+}

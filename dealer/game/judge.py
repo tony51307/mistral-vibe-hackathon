@@ -11,6 +11,11 @@ from .models import JudgeResult
 _INTEGER_RE = re.compile(r"[+-]?\d+")
 _DECIMAL_RE = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
 _FRACTION_RE = re.compile(r"([+-]?\d+)\s*/\s*([+-]?\d+)")
+_ASYMPTOTIC_RE = re.compile(r"(?:[oθ]|theta)\s*\(", re.IGNORECASE)
+_ANSWER_PREFIX_RE = re.compile(
+    r"^(?:the\s+)?(?:final\s+)?answer\s*(?:is|:)\s*",
+    re.IGNORECASE,
+)
 
 
 def _remove_math_delimiters(text: str) -> str:
@@ -63,6 +68,42 @@ def _normalize_text(value: str, operations: list[str]) -> str:
     return result
 
 
+def _looks_asymptotic(value: str) -> bool:
+    return bool(_ASYMPTOTIC_RE.search(value))
+
+
+def _canonical_asymptotic(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).strip().casefold()
+    normalized = _remove_math_delimiters(normalized)
+    if "=" in normalized:
+        normalized = normalized.rsplit("=", 1)[1].strip()
+    normalized = normalized.replace("θ", "theta")
+    normalized = re.sub(r"\b(?:o|theta)\s*\(", "complexity(", normalized)
+    normalized = normalized.replace(" ", "")
+    return normalized
+
+
+def _strip_answer_prefix(value: str) -> str:
+    return _ANSWER_PREFIX_RE.sub("", value.strip())
+
+
+def _leading_answer_clause(value: str) -> str:
+    stripped = _strip_answer_prefix(value)
+    return re.split(r"[,.;:\n]|\s+-\s+|\s+because\b", stripped, maxsplit=1, flags=re.IGNORECASE)[
+        0
+    ].strip()
+
+
+def _normalized_text_matches_with_explanation(
+    submitted: str,
+    accepted: set[str],
+    operations: list[str],
+) -> bool:
+    candidates = {_normalize_text(_strip_answer_prefix(submitted), operations)}
+    candidates.add(_normalize_text(_leading_answer_clause(submitted), operations))
+    return bool(candidates & accepted)
+
+
 def judge_answer(problem: dict[str, Any], submitted: str) -> JudgeResult:
     validator = problem["answer"]["validator"]
     kind = validator["kind"]
@@ -90,7 +131,13 @@ def judge_answer(problem: dict[str, Any], submitted: str) -> JudgeResult:
                 " ".join(unicodedata.normalize("NFKC", alias).strip().casefold().split())
                 for alias in validator["accepted_text"]
             }
-            if normalized not in aliases:
+            leading = " ".join(
+                unicodedata.normalize("NFKC", _leading_answer_clause(submitted))
+                .strip()
+                .casefold()
+                .split()
+            )
+            if normalized not in aliases and leading not in aliases:
                 raise ValueError("parse_failure")
             return JudgeResult(True, validator["value"], kind)
 
@@ -98,7 +145,15 @@ def judge_answer(problem: dict[str, Any], submitted: str) -> JudgeResult:
             operations = validator["normalization"]
             normalized = _normalize_text(submitted, operations)
             accepted = {_normalize_text(value, operations) for value in validator["accepted"]}
-            return JudgeResult(normalized in accepted, normalized, kind)
+            if normalized in accepted:
+                return JudgeResult(True, normalized, kind)
+            if _normalized_text_matches_with_explanation(submitted, accepted, operations):
+                return JudgeResult(True, normalized, kind)
+            if any(_looks_asymptotic(value) for value in accepted):
+                canonical = _canonical_asymptotic(normalized)
+                canonical_accepted = {_canonical_asymptotic(value) for value in accepted}
+                return JudgeResult(canonical in canonical_accepted, normalized, kind)
+            return JudgeResult(False, normalized, kind)
     except (InvalidOperation, ValueError, OverflowError):
         return JudgeResult(False, None, kind, "parse_failure")
 

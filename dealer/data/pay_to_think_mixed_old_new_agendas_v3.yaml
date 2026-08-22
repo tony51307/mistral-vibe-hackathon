@@ -1,0 +1,1057 @@
+schema_version: '3.0'
+name: pay_to_think_mixed_old_new_agendas_v3
+problem_banks:
+  old_v1: pay_to_think_problem_bank_v1.json
+  new_v2: pay_to_think_reasoning_sensitive_additions_v2.json
+load_rule: Load both banks, build one dictionary keyed by problem id, assert no duplicate ids, then resolve each round
+  by problem_id. source_bank is an audit field.
+purpose: Showcase/stress-test agendas designed to create measurable margin for adaptive reasoning while retaining cheap/easy
+  rounds that punish always-high.
+agent_visibility_rule:
+  show:
+  - problem_id
+  - category
+  - prompt_markdown
+  hide:
+  - source_bank
+  - dealer_difficulty
+  - guessability
+  - reasoning_profile
+  - reference_reasoning_tier
+  - strategy_number
+  - objective
+agendas:
+- strategy_number: 11
+  name: dynamic_margin_interleave
+  showcase_bias: true
+  objective: Interleave cheap old-bank rounds with new reasoning-sensitive rounds so a static tier is repeatedly mispriced.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: quant_001
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 2
+    problem_id: ptt2_cs_001
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 3
+    problem_id: logic_001
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 4
+    problem_id: ptt2_math_005
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 5
+    problem_id: cs_001
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 6
+    problem_id: ptt2_prob_001
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 7
+    problem_id: alg_001
+    source_bank: old_v1
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 8
+    problem_id: ptt2_quant_001
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 9
+    problem_id: prob_001
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 10
+    problem_id: ptt2_alg_001
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 11
+    problem_id: quant_004
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 12
+    problem_id: ptt2_phys_003
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 13
+    problem_id: logic_003
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 14
+    problem_id: ptt2_cs_003
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 15
+    problem_id: prob_003
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: easy
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 16
+    problem_id: ptt2_logic_001
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 17
+    problem_id: cs_003
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 18
+    problem_id: ptt2_quant_005
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 19
+    problem_id: alg_003
+    source_bank: old_v1
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 20
+    problem_id: ptt2_prob_006
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 21
+    problem_id: quant_002
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 22
+    problem_id: ptt2_phys_001
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 23
+    problem_id: logic_005
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 24
+    problem_id: ptt2_alg_005
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 25
+    problem_id: prob_002
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+- strategy_number: 12
+  name: middle_tier_harvest
+  showcase_bias: true
+  objective: Concentrate on low/medium reasoning-lift questions so dynamic routing can beat both always-none and always-high
+    without relying on extreme difficulty.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: ptt2_math_001
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 2
+    problem_id: ptt2_phys_002
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 3
+    problem_id: ptt2_cs_002
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 4
+    problem_id: ptt2_alg_002
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 5
+    problem_id: ptt2_prob_003
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 6
+    problem_id: ptt2_logic_002
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 7
+    problem_id: ptt2_quant_002
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 8
+    problem_id: prob_005
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 9
+    problem_id: cs_005
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 10
+    problem_id: alg_006
+    source_bank: old_v1
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: legacy
+    reference_reasoning_tier: medium
+  - round: 11
+    problem_id: ptt2_math_003
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 12
+    problem_id: ptt2_phys_004
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 13
+    problem_id: ptt2_cs_005
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 14
+    problem_id: ptt2_alg_004
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 15
+    problem_id: ptt2_prob_004
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 16
+    problem_id: ptt2_logic_004
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 17
+    problem_id: ptt2_quant_003
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 18
+    problem_id: logic_006
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: legacy
+    reference_reasoning_tier: medium
+  - round: 19
+    problem_id: quant_005
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 20
+    problem_id: prob_006
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: legacy
+    reference_reasoning_tier: medium
+  - round: 21
+    problem_id: ptt2_math_006
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 22
+    problem_id: ptt2_phys_006
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 23
+    problem_id: ptt2_alg_006
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 24
+    problem_id: ptt2_logic_005
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: cheap_or_low
+    reference_reasoning_tier: low
+  - round: 25
+    problem_id: ptt2_quant_006
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+- strategy_number: 13
+  name: anti_shallow_trap
+  showcase_bias: true
+  objective: Use problems with tempting shallow answers and a few easy anchors; intended to expose pattern-completion
+    and answer-prior strategies.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: ptt2_quant_001
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 2
+    problem_id: ptt2_phys_001
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 3
+    problem_id: ptt2_alg_001
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 4
+    problem_id: ptt2_logic_001
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 5
+    problem_id: ptt2_math_005
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 6
+    problem_id: quant_007
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: medium
+  - round: 7
+    problem_id: ptt2_cs_001
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 8
+    problem_id: ptt2_prob_001
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 9
+    problem_id: ptt2_quant_005
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 10
+    problem_id: ptt2_phys_004
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 11
+    problem_id: logic_001
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 12
+    problem_id: prob_001
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 13
+    problem_id: cs_001
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 14
+    problem_id: ptt2_prob_003
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 15
+    problem_id: ptt2_cs_003
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 16
+    problem_id: ptt2_alg_005
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 17
+    problem_id: ptt2_logic_006
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 18
+    problem_id: ptt2_quant_004
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 19
+    problem_id: quant_008
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: low
+  - round: 20
+    problem_id: prob_008
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: medium
+  - round: 21
+    problem_id: ptt2_math_003
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 22
+    problem_id: ptt2_phys_003
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 23
+    problem_id: ptt2_cs_002
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 24
+    problem_id: ptt2_prob_006
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 25
+    problem_id: ptt2_alg_006
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+- strategy_number: 14
+  name: bankroll_preserve_then_convert
+  showcase_bias: true
+  objective: Let adaptive agents save money early, then present a late run of high reasoning-lift problems where preserved
+    bankroll matters.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: cs_001
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 2
+    problem_id: alg_001
+    source_bank: old_v1
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 3
+    problem_id: prob_001
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 4
+    problem_id: logic_001
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 5
+    problem_id: quant_001
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 6
+    problem_id: ptt2_phys_005
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: easy
+    guessability: high
+    reasoning_profile: cheap_capture
+    reference_reasoning_tier: none
+  - round: 7
+    problem_id: ptt2_cs_004
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reasoning_profile: cheap_capture
+    reference_reasoning_tier: none
+  - round: 8
+    problem_id: ptt2_logic_003
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: easy
+    guessability: medium
+    reasoning_profile: cheap_capture
+    reference_reasoning_tier: none
+  - round: 9
+    problem_id: ptt2_math_002
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: cheap_or_low
+    reference_reasoning_tier: low
+  - round: 10
+    problem_id: ptt2_prob_005
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: easy
+    guessability: medium
+    reasoning_profile: cheap_or_low
+    reference_reasoning_tier: low
+  - round: 11
+    problem_id: ptt2_math_001
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 12
+    problem_id: ptt2_cs_005
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 13
+    problem_id: ptt2_prob_004
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 14
+    problem_id: ptt2_alg_002
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 15
+    problem_id: ptt2_quant_003
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 16
+    problem_id: ptt2_cs_001
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 17
+    problem_id: ptt2_phys_001
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 18
+    problem_id: ptt2_prob_001
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 19
+    problem_id: ptt2_alg_001
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 20
+    problem_id: ptt2_logic_001
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 21
+    problem_id: ptt2_quant_004
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 22
+    problem_id: ptt2_prob_002
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 23
+    problem_id: ptt2_logic_006
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 24
+    problem_id: ptt2_quant_005
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 25
+    problem_id: ptt2_cs_003
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+- strategy_number: 15
+  name: five_wave_dynamic_test
+  showcase_bias: true
+  objective: Five repeated waves of cheap -> low -> medium -> high -> trap, producing repeated within-season opportunities
+    for dynamic effort selection.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: cs_001
+    source_bank: old_v1
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 2
+    problem_id: ptt2_math_001
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: medium
+    guessability: high
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 3
+    problem_id: ptt2_prob_003
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 4
+    problem_id: ptt2_cs_001
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 5
+    problem_id: ptt2_logic_001
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 6
+    problem_id: prob_001
+    source_bank: old_v1
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 7
+    problem_id: ptt2_phys_002
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 8
+    problem_id: ptt2_logic_002
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 9
+    problem_id: ptt2_phys_001
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 10
+    problem_id: ptt2_quant_005
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 11
+    problem_id: logic_001
+    source_bank: old_v1
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 12
+    problem_id: ptt2_alg_002
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 13
+    problem_id: ptt2_quant_002
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 14
+    problem_id: ptt2_prob_001
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 15
+    problem_id: ptt2_alg_001
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 16
+    problem_id: quant_002
+    source_bank: old_v1
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 17
+    problem_id: ptt2_cs_005
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 18
+    problem_id: ptt2_phys_004
+    source_bank: new_v2
+    category: physics
+    dealer_difficulty: hard
+    guessability: high
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 19
+    problem_id: ptt2_logic_006
+    source_bank: new_v2
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 20
+    problem_id: ptt2_math_005
+    source_bank: new_v2
+    category: math
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 21
+    problem_id: alg_001
+    source_bank: old_v1
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reasoning_profile: legacy
+    reference_reasoning_tier: none
+  - round: 22
+    problem_id: ptt2_quant_003
+    source_bank: new_v2
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_low
+    reference_reasoning_tier: low
+  - round: 23
+    problem_id: ptt2_alg_005
+    source_bank: new_v2
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium
+  - round: 24
+    problem_id: ptt2_prob_006
+    source_bank: new_v2
+    category: probability
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_high
+    reference_reasoning_tier: high
+  - round: 25
+    problem_id: ptt2_cs_003
+    source_bank: new_v2
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reasoning_profile: reasoning_sensitive_medium
+    reference_reasoning_tier: medium

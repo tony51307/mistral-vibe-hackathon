@@ -368,9 +368,9 @@ def load_agent_catalog(path: str | Path) -> AgentCatalog:
             raise AgentConfigError(f"duplicate roster id: {roster_id}")
         name = _string(item.get("name"), f"roster {roster_id}.name")
         count = item.get("initial_agent_count")
-        if isinstance(count, bool) or not isinstance(count, int) or not 6 <= count <= 10:
+        if isinstance(count, bool) or not isinstance(count, int) or not 3 <= count <= 10:
             raise AgentConfigError(
-                f"roster {roster_id}: initial_agent_count must be between 6 and 10"
+                f"roster {roster_id}: initial_agent_count must be between 3 and 10"
             )
         strategy = item.get("recommended_agenda_strategy")
         if isinstance(strategy, bool) or not isinstance(strategy, int) or strategy <= 0:

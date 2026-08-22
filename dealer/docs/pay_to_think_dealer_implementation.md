@@ -2,12 +2,17 @@
 
 ## 1. Inputs
 
-Use two data files:
+The baseline uses two data files:
 
 - `pay_to_think_problem_bank_v1.json` — canonical problem bank and validators.
 - `pay_to_think_agendas_v1.yaml` — ordered 25-round agendas.
 
-The problem bank is authoritative for prompts and answers. The agenda contains only selection/order metadata and must never override an answer.
+Mixed-bank strategies 11–15 additionally use:
+
+- `pay_to_think_reasoning_sensitive_additions_v2.json` — 42 reasoning-sensitive problems.
+- `pay_to_think_mixed_old_new_agendas_v3.yaml` — mixed V1/V2 problem rotations.
+
+Each problem bank is authoritative for its prompts, answers, and dealer metadata. An agenda contains only selection/order metadata and must never override a source problem.
 
 Recommended V1 economy constants:
 
@@ -407,7 +412,7 @@ Do not burn or refund the pot.
 
 # 6. Agenda strategies
 
-The YAML contains ten fixed strategies:
+The two YAML catalogs contain fifteen fixed strategies:
 
 1. `balanced_ramp` — gradual increase in difficulty with mixed categories.
 2. `bait_and_switch` — alternates easy and hard questions so category alone is not enough.
@@ -419,10 +424,15 @@ The YAML contains ten fixed strategies:
 8. `guessability_traps` — separates answer priors from actual reasoning need.
 9. `reasoning_tier_ladder` — emphasizes low/medium decision boundaries.
 10. `repeated_five_step_ladders` — repeats difficulty ladders across categories.
+11. `dynamic_margin_interleave` — interleaves cheap legacy and reasoning-sensitive rounds.
+12. `middle_tier_harvest` — concentrates useful low/medium reasoning purchases.
+13. `anti_shallow_trap` — emphasizes tempting but incorrect shallow answers.
+14. `bankroll_preserve_then_convert` — saves capital before a reasoning-heavy late block.
+15. `five_wave_dynamic_test` — repeats mixed-bank reasoning waves across categories.
 
 For scientific comparisons, use the same agenda and model seeds across policies whenever possible.
 
-Strategies 6–10 are intentionally showcase-biased. Pair them with seeded mixed
+Strategies 6–15 are intentionally showcase-biased. Pair them with seeded mixed
 or randomized agendas before making comparative or scientific claims.
 
 Do not reveal strategy number/name/objective to agents.

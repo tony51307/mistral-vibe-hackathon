@@ -512,6 +512,12 @@ Markdown {
     width: 100%;
 }
 
+.auto-think-message {
+    margin: 0 2;
+    height: auto;
+    width: 100%;
+}
+
 .plan-file-message {
     margin-top: 1;
     margin-bottom: 0;

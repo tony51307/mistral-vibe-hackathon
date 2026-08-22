@@ -71,6 +71,7 @@ from vibe.app_server.models import (
     PublicSession,
     PublicTurnStatus,
     QuestionChoice,
+    ReasoningRoutingNoticeDetail,
     RequiredPermission,
     TeleportCheckingGit,
     TeleportComplete,
@@ -118,6 +119,7 @@ from vibe.cli.narrator_manager.narrator_manager_port import (
 from vibe.cli.plan_offer.presentation import plan_offer_cta, plan_title
 from vibe.cli.process_start import PROCESS_START_MONOTONIC, PROCESS_START_WALLCLOCK
 from vibe.cli.terminal_detect import Terminal, detect_terminal
+from vibe.cli.textual_ui.auto_thinking import AutoThinkSessionStats
 from vibe.cli.textual_ui.handlers.event_handler import EventHandler
 from vibe.cli.textual_ui.mcp_commands import (
     MCP_ADD_HELP,
@@ -841,6 +843,7 @@ class VibeApp(App):  # noqa: PLR0904
         self._pending_theme: str | None = None
         self._pending_model: str | None = None
         self._pending_thinking: ThinkingMode | None = None
+        self._auto_thinking_stats = AutoThinkSessionStats()
 
     @property
     def _effective_theme(self) -> str:
@@ -2527,6 +2530,12 @@ class VibeApp(App):  # noqa: PLR0904
             self._update_context_progress(event)
             return
         entry = _public_entry(event)
+        if (
+            isinstance(event, HistoryEntryAdded)
+            and isinstance(entry, PublicNoticeEntry)
+            and isinstance(entry.detail, ReasoningRoutingNoticeDetail)
+        ):
+            self._auto_thinking_stats.record(entry.detail)
         if isinstance(entry, PublicNoticeEntry) and isinstance(
             entry.detail, WaitingForInputNoticeDetail
         ):
@@ -3389,8 +3398,29 @@ class VibeApp(App):  # noqa: PLR0904
             return
         await self._switch_to_model_picker_app()
 
-    async def _show_thinking(self, **kwargs: Any) -> None:
+    async def _show_thinking(self, cmd_args: str = "", **kwargs: Any) -> None:
         """Switch to the thinking level picker in the bottom panel."""
+        match cmd_args.strip().casefold():
+            case "explain":
+                await self._mount_and_scroll(
+                    UserCommandMessage(self._auto_thinking_stats.explain_markdown())
+                )
+                return
+            case "stats":
+                await self._mount_and_scroll(
+                    UserCommandMessage(self._auto_thinking_stats.stats_markdown())
+                )
+                return
+            case "":
+                pass
+            case _:
+                await self._mount_and_scroll(
+                    ErrorMessage(
+                        "Usage: /thinking [explain|stats]",
+                        collapsed=self._tools_collapsed,
+                    )
+                )
+                return
         if self._current_bottom_app == BottomApp.ThinkingPicker:
             return
         await self._switch_to_thinking_picker_app()

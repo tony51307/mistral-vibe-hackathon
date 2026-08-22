@@ -533,6 +533,11 @@ class ReasoningRoutingEvent(BaseEvent):
     reason: str
 
 
+class ReasoningRoutingProgressEvent(BaseEvent):
+    stage: Literal["analyzing", "probing", "verifying", "selecting"]
+    message: str
+
+
 class ToolCallEvent(BaseEvent):
     tool_call_id: str
     tool_name: str

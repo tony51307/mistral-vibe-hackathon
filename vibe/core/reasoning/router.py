@@ -43,13 +43,18 @@ class ReasoningRoutingDecision(BaseModel):
 
 _PROBE_SYSTEM = """You are a cheap decision-stability probe for a coding agent.
 Do not solve the task or use tools. Do not change any facts or constraints.
+Risk means the reasoning effort required for a materially correct answer, not safety.
+Use low only for direct recall or a single mechanical step with no edge cases. Use
+medium for multi-step calculations, interacting constraints, or ambiguity. Use high
+for probability, proofs, optimization, boundary cases, or conclusions whose subtle
+errors are hard to detect. Brief requested output does not make a task easy: ignore
+phrases such as "answer only" when assigning risk.
 Return only JSON with this exact shape:
 {"action":"inspect|edit|run|answer|plan|ask", "targets":["short names"],
  "risk":"low|medium|high", "confidence":0.0}
 Keep targets short and include at most three."""
 
 _FAST_PATH_PATTERNS = (
-    r"\banswer only\b",
     r"\b(readme|documentation|docs?)\b.*\b(typo|spelling|heading|formatting)\b",
     r"\b(typo|spelling|heading|formatting)\b.*\b(readme|documentation|docs?)\b",
 )
@@ -66,10 +71,25 @@ _HIGH_CONSEQUENCE_TERMS = re.compile(
     r"permission|production|release|secret|security)\b",
     flags=re.IGNORECASE,
 )
+_HIGH_REASONING_TERMS = re.compile(
+    r"\b(at least|at most|counterexample|exactly|optimi[sz]\w*|paradox\w*|"
+    r"probabilit\w*|prove|proof|without replacement)\b",
+    flags=re.IGNORECASE,
+)
+_QUANTITATIVE_TERMS = re.compile(
+    r"\b(acceleration|complexity|divisors?|edges?|energy|factor|force|graph|"
+    r"percent|solve|speed|velocity|weight)\b|%|\^|\d\s*[+*/=-]",
+    flags=re.IGNORECASE,
+)
+_LOGICAL_TERMS = re.compile(
+    r"\b(all|and|false|if|implies|neither|then|true)\b", flags=re.IGNORECASE
+)
 _TARGET_STOP_WORDS = {"a", "and", "boundary", "file", "module", "the"}
 _TARGET_SYNONYMS = {"configuration": "config", "documentation": "docs"}
 _FAST_PATH_MAX_CHARS = 300
 _CONFIDENT_PROBE_THRESHOLD = 0.8
+_MULTI_STEP_NUMBER_COUNT = 2
+_MULTI_STEP_LOGIC_TERM_COUNT = 3
 
 
 def is_trivial_request(request: str) -> bool:
@@ -90,6 +110,17 @@ def is_high_risk_request(request: str) -> bool:
 
 def is_high_consequence_request(request: str) -> bool:
     return _HIGH_CONSEQUENCE_TERMS.search(request) is not None
+
+
+def infer_reasoning_floor(request: str) -> ThinkingLevel:
+    if _HIGH_REASONING_TERMS.search(request):
+        return "high"
+    number_count = len(re.findall(r"(?<!\w)\d+(?:\.\d+)?", request))
+    if number_count >= _MULTI_STEP_NUMBER_COUNT and _QUANTITATIVE_TERMS.search(request):
+        return "medium"
+    if len(_LOGICAL_TERMS.findall(request)) >= _MULTI_STEP_LOGIC_TERM_COUNT:
+        return "medium"
+    return "low"
 
 
 def build_probe_messages(
@@ -120,11 +151,22 @@ def route_probe_decisions(
     baseline = decisions[0]
     critic = decisions[-1]
     if len(decisions) == 1:
-        level: ThinkingLevel = baseline.risk
+        level: ThinkingLevel = (
+            "medium"
+            if baseline.risk == "low"
+            and baseline.confidence < _CONFIDENT_PROBE_THRESHOLD
+            else baseline.risk
+        )
         return ReasoningRoutingDecision(
             level=clamp_thinking_level(level, minimum=minimum, maximum=maximum),
             stability=baseline.confidence,
-            reason="high_risk" if baseline.risk == "high" else "stable",
+            reason=(
+                "high_risk"
+                if baseline.risk == "high"
+                else "disagreement"
+                if level == "medium"
+                else "stable"
+            ),
         )
     action_agrees = baseline.action.casefold() == critic.action.casefold()
     targets_a = _target_terms(baseline.targets)
@@ -136,6 +178,13 @@ def route_probe_decisions(
         level = clamp_thinking_level("high", minimum=minimum, maximum=maximum)
         return ReasoningRoutingDecision(
             level=level, stability=stability, reason="high_risk"
+        )
+    if min(baseline.confidence, critic.confidence) < _CONFIDENT_PROBE_THRESHOLD:
+        selected = "high" if high_consequence else "medium"
+        return ReasoningRoutingDecision(
+            level=clamp_thinking_level(selected, minimum=minimum, maximum=maximum),
+            stability=min(baseline.confidence, critic.confidence),
+            reason="high_risk" if high_consequence else "disagreement",
         )
     if stability < 1:
         selected: ThinkingLevel = "high" if high_consequence else "medium"

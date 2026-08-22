@@ -34,6 +34,7 @@ from vibe.app_server.models import (
     PublicNoticeEntry,
     PublicReasoningEntry,
     ReasoningRoutingNoticeDetail,
+    ReasoningRoutingProgressNoticeDetail,
     ScheduledLoopFiredNoticeDetail,
     SessionTitleUpdatedNoticeDetail,
     SkippedEffectState,
@@ -47,6 +48,7 @@ from vibe.cli.textual_ui.widgets.loading import (
 )
 from vibe.cli.textual_ui.widgets.messages import (
     AssistantMessage,
+    AutoThinkMessage,
     ErrorMessage,
     HookRunContainer,
     HookSystemMessageLine,
@@ -98,6 +100,7 @@ class EventHandler:
         self.current_streaming_message: AssistantMessage | None = None
         self._turn_assistant_message: AssistantMessage | None = None
         self.current_streaming_reasoning: ReasoningMessage | None = None
+        self.current_auto_think: AutoThinkMessage | None = None
         self.current_tool_group: ToolGroup | None = None
         self.plan_file_message: PlanFileMessage | None = None
         self._hook_containers: dict[str, HookRunContainer] = {}
@@ -339,11 +342,35 @@ class EventHandler:
             case ScheduledLoopFiredNoticeDetail():
                 await self.finalize_streaming()
                 await self.mount_callback(UserCommandMessage(entry.message))
-            case ReasoningRoutingNoticeDetail():
-                await self.finalize_streaming()
-                await self.mount_callback(UserCommandMessage(entry.message))
+            case ReasoningRoutingProgressNoticeDetail() as detail:
+                await self._handle_auto_think_notice(detail, loading_widget)
+            case ReasoningRoutingNoticeDetail() as detail:
+                await self._handle_auto_think_notice(detail, loading_widget)
             case SessionTitleUpdatedNoticeDetail():
                 pass
+
+    async def _handle_auto_think_notice(
+        self,
+        detail: ReasoningRoutingProgressNoticeDetail | ReasoningRoutingNoticeDetail,
+        loading_widget: LoadingWidget | None,
+    ) -> None:
+        await self.finalize_streaming()
+        if isinstance(detail, ReasoningRoutingProgressNoticeDetail):
+            if loading_widget is not None:
+                loading_widget.set_status(detail.message)
+            if self.current_auto_think is None:
+                self.current_auto_think = AutoThinkMessage(progress=detail)
+                await self.mount_callback(self.current_auto_think)
+                return
+            self.current_auto_think.update_progress(detail)
+            return
+        if loading_widget is not None:
+            loading_widget.set_status(THINKING_LOADING_STATUS)
+        if self.current_auto_think is None:
+            await self.mount_callback(AutoThinkMessage(detail))
+            return
+        self.current_auto_think.complete(detail)
+        self.current_auto_think = None
 
     async def _handle_hook_notice(
         self, detail: HookNoticeDetail, loading_widget: LoadingWidget | None

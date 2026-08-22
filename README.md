@@ -52,7 +52,24 @@ Run the integrated CLI and select automatic reasoning:
 
 ```bash
 uv run vibe
-# In Vibe: /thinking auto
+# In Vibe: run /thinking, then select auto
+```
+
+Each routed turn displays a live AutoThink card that advances through task
+analysis, low-cost probing, verification when needed, and final gear selection.
+The card shows routing stability and a compact decision path without exposing
+private chain-of-thought. After a turn, inspect the latest route or the session
+dashboard:
+
+```text
+/thinking explain
+/thinking stats
+```
+
+A reliable high-gear demo prompt is:
+
+```text
+What is the probability of exactly three heads in ten fair coin flips? Answer only with the final fraction.
 ```
 
 Run the included routing benchmark and inspect its generated cost, latency, and

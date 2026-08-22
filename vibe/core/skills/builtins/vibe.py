@@ -723,7 +723,7 @@ Custom agents are TOML files in `~/.vibe/agents/NAME.toml`.
 - `/help` - Show help message
 - `/config` - Full-screen settings browser. Fields show their value and origin layer (default / TOML / env / override). Type to filter, arrows to move, Enter to edit; booleans toggle, closed-set fields (theme, models) pick from a list, scalars edit inline, complex fields open a JSON editor. The edit modal shows an inspector of the layers setting the field; edits persist to the TOML layer by default, `Tab` targets the ephemeral session override (until restart), and `Ctrl+R` clears the field one writable layer at a time toward the default. The `tools` field opens a grouped tool list with a per-tool config editor (permission, allow/deny lists, `Ctrl+E` for raw JSON). Enabling/disabling whole MCP servers or connectors stays in `/mcp`.
 - `/model` - Select active model
-- `/thinking` - Select thinking level. `auto` uses cheap stability probes to choose low or high reasoning for each turn.
+- `/thinking` - Select thinking level. `auto` streams its analysis, probe, verification, and selection stages into a live routing card while choosing a reasoning level. Use `/thinking explain` for the latest rationale and `/thinking stats` for the session dashboard.
 - `/theme` - Select Textual UI theme; `auto` follows terminal/OS appearance (persisted in config)
 - `/reload` - Reload configuration, agent instructions, and skills from disk
 - `/clear`, `/new` - Start a new conversation. Optionally pass a prompt to seed it

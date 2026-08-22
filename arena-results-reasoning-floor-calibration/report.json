@@ -1,0 +1,689 @@
+{
+  "created_at": "2026-08-22T23:40:11.898866+00:00",
+  "model": "mistral-medium-3.5",
+  "tasks": [
+    {
+      "id": "math_001",
+      "title": "math: math_001",
+      "prompt": "What is 18 percent of 250?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "math",
+      "expected_response": "45",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "45",
+        "45.0"
+      ]
+    },
+    {
+      "id": "math_002",
+      "title": "math: math_002",
+      "prompt": "Solve for x: 3x + 7 = 31.\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "math",
+      "expected_response": "8",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "8",
+        "8.0"
+      ]
+    },
+    {
+      "id": "probability_001",
+      "title": "probability: probability_001",
+      "prompt": "A jar has 5 red balls, 4 blue balls, and 3 green balls. Two balls are drawn without replacement. What is the probability both are red?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "probability",
+      "expected_response": "5/33",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "5/33",
+        "20/132"
+      ]
+    },
+    {
+      "id": "logic_001",
+      "title": "logic: logic_001",
+      "prompt": "True or false: If all bloops are razzies and all razzies are lazzies, then all bloops are lazzies.\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "logic",
+      "expected_response": "true",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "true",
+        "t",
+        "yes"
+      ]
+    },
+    {
+      "id": "cs_001",
+      "title": "computer science: cs_001",
+      "prompt": "What is the time complexity of merge sort on n items? Answer in Big-O notation.\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "computer science",
+      "expected_response": "O(n log n)",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "o(n log n)",
+        "o(nlogn)",
+        "o(n log(n))"
+      ]
+    },
+    {
+      "id": "algorithms_001",
+      "title": "algorithms: algorithms_001",
+      "prompt": "A binary search over a sorted array of 1024 elements needs at most how many comparisons?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "algorithms",
+      "expected_response": "11",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "11"
+      ]
+    },
+    {
+      "id": "physics_001",
+      "title": "physics: physics_001",
+      "prompt": "A car accelerates from rest at 3 m/s^2 for 4 seconds. What final speed does it reach in m/s?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "physics",
+      "expected_response": "12",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "12",
+        "12 m/s",
+        "12.0"
+      ]
+    },
+    {
+      "id": "probability_002",
+      "title": "probability: probability_002",
+      "prompt": "A fair coin is flipped 4 times. What is the probability of getting exactly 3 heads?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "probability",
+      "expected_response": "1/4",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "1/4",
+        "4/16",
+        "0.25",
+        "25%"
+      ]
+    },
+    {
+      "id": "logic_002",
+      "title": "logic: logic_002",
+      "prompt": "A statement says: 'This statement is false.' Is it consistently true, consistently false, or paradoxical?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "logic",
+      "expected_response": "paradoxical",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "paradoxical",
+        "paradox",
+        "neither"
+      ]
+    },
+    {
+      "id": "math_003",
+      "title": "math: math_003",
+      "prompt": "How many positive divisors does 360 have?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "math",
+      "expected_response": "24",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "24"
+      ]
+    },
+    {
+      "id": "algorithms_002",
+      "title": "algorithms: algorithms_002",
+      "prompt": "In a complete graph with 6 vertices, how many undirected edges are there?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "algorithms",
+      "expected_response": "15",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "15"
+      ]
+    },
+    {
+      "id": "physics_002",
+      "title": "physics: physics_002",
+      "prompt": "A 2 kg object experiences a net force of 10 N. What is its acceleration in m/s^2?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "physics",
+      "expected_response": "5",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "5",
+        "5.0",
+        "5 m/s^2"
+      ]
+    },
+    {
+      "id": "math_004",
+      "title": "math: math_004",
+      "prompt": "What is 7 squared?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "math",
+      "expected_response": "49",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "49"
+      ]
+    },
+    {
+      "id": "math_005",
+      "title": "math: math_005",
+      "prompt": "A number is doubled and then increased by 9 to get 35. What is the number?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "math",
+      "expected_response": "13",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "13"
+      ]
+    },
+    {
+      "id": "physics_003",
+      "title": "physics: physics_003",
+      "prompt": "What is the weight in newtons of a 3 kg object if g = 10 m/s^2?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "physics",
+      "expected_response": "30",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "30",
+        "30 n",
+        "30.0"
+      ]
+    },
+    {
+      "id": "physics_004",
+      "title": "physics: physics_004",
+      "prompt": "A wave has frequency 5 Hz and wavelength 2 m. What is its speed in m/s?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "physics",
+      "expected_response": "10",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "10",
+        "10 m/s",
+        "10.0"
+      ]
+    },
+    {
+      "id": "physics_005",
+      "title": "physics: physics_005",
+      "prompt": "A 4 kg cart moving at 3 m/s has how much kinetic energy in joules?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "physics",
+      "expected_response": "18",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "18",
+        "18 j",
+        "18.0"
+      ]
+    },
+    {
+      "id": "cs_002",
+      "title": "computer science: cs_002",
+      "prompt": "In binary, what is decimal 5?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "computer science",
+      "expected_response": "101",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "101",
+        "0b101"
+      ]
+    },
+    {
+      "id": "cs_003",
+      "title": "computer science: cs_003",
+      "prompt": "True or false: A stack is usually last-in, first-out.\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "computer science",
+      "expected_response": "true",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "true",
+        "t",
+        "yes"
+      ]
+    },
+    {
+      "id": "cs_004",
+      "title": "computer science: cs_004",
+      "prompt": "What data structure normally supports FIFO behavior: stack or queue?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "computer science",
+      "expected_response": "queue",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "queue",
+        "a queue"
+      ]
+    },
+    {
+      "id": "cs_005",
+      "title": "computer science: cs_005",
+      "prompt": "A hash table has load factor 0.75 and 120 filled slots. How many total slots does it have?\nAnswer only with the final answer.",
+      "expected_auto_level": "high",
+      "category": "computer science",
+      "expected_response": "160",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "160"
+      ]
+    },
+    {
+      "id": "logic_003",
+      "title": "logic: logic_003",
+      "prompt": "If exactly one of A and B is true, and A is false, is B true or false?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "logic",
+      "expected_response": "true",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "true",
+        "b is true"
+      ]
+    },
+    {
+      "id": "logic_004",
+      "title": "logic: logic_004",
+      "prompt": "If P implies Q, P is true, and Q implies R, is R true?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "logic",
+      "expected_response": "true",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "true",
+        "yes"
+      ]
+    },
+    {
+      "id": "probability_003",
+      "title": "probability: probability_003",
+      "prompt": "A fair six-sided die is rolled once. What is the probability of rolling a 6?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "probability",
+      "expected_response": "1/6",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "1/6",
+        "0.1666666667"
+      ]
+    },
+    {
+      "id": "probability_004",
+      "title": "probability: probability_004",
+      "prompt": "Two fair coins are flipped. What is the probability of getting at least one head?\nAnswer only with the final answer.",
+      "expected_auto_level": "low",
+      "category": "probability",
+      "expected_response": "3/4",
+      "response_match": "accepted",
+      "accepted_responses": [
+        "3/4",
+        "0.75",
+        "75%"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "task_id": "math_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "45",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 0.99,
+      "elapsed_seconds": 7.424199791999854,
+      "total_tokens": 8033,
+      "cost": 0.0128115,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "math_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "8",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.00217747699935,
+      "total_tokens": 8060,
+      "cost": 0.007758,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "probability_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "5/33",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.95,
+      "elapsed_seconds": 12.25914154199927,
+      "total_tokens": 8261,
+      "cost": 0.0142395,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "logic_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "True",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 11.11701368300055,
+      "total_tokens": 8094,
+      "cost": 0.013017,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "cs_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "O(n log n)",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.645477131998632,
+      "total_tokens": 7958,
+      "cost": 0.006987,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "algorithms_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "10",
+      "routed_level": "high",
+      "routing_reason": "stable",
+      "stability": 0.99,
+      "elapsed_seconds": 8.522528081000928,
+      "total_tokens": 8099,
+      "cost": 0.0104157,
+      "quality_pass": false,
+      "error": null
+    },
+    {
+      "task_id": "physics_001",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "12",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 8.166957919002016,
+      "total_tokens": 8068,
+      "cost": 0.007686,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "probability_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "1/4",
+      "routed_level": "high",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 10.316229074000148,
+      "total_tokens": 8584,
+      "cost": 0.016824,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "logic_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "paradoxical",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.9,
+      "elapsed_seconds": 8.298931682998955,
+      "total_tokens": 8096,
+      "cost": 0.010375200000000001,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "math_003",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "24",
+      "routed_level": "medium",
+      "routing_reason": "disagreement",
+      "stability": 0.9,
+      "elapsed_seconds": 8.41812120800023,
+      "total_tokens": 8263,
+      "cost": 0.0145185,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "algorithms_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "15",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.954131780999887,
+      "total_tokens": 7949,
+      "cost": 0.0121155,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "physics_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "5",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 8.31661037700178,
+      "total_tokens": 8127,
+      "cost": 0.0133605,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "math_004",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "49",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.852151238999795,
+      "total_tokens": 7924,
+      "cost": 0.012084,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "math_005",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "13",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 21.34490535900113,
+      "total_tokens": 7958,
+      "cost": 0.012111,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "physics_003",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "30 N",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 8.544656234997092,
+      "total_tokens": 8044,
+      "cost": 0.012744,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "physics_004",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "10",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.815047787000367,
+      "total_tokens": 8028,
+      "cost": 0.012654,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "physics_005",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "18",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.32977711300191,
+      "total_tokens": 8054,
+      "cost": 0.007665,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "cs_002",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "101",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 5.929465653000079,
+      "total_tokens": 7930,
+      "cost": 0.0118902,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "cs_003",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "True",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 5.9509264700027416,
+      "total_tokens": 7946,
+      "cost": 0.009179399999999999,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "cs_004",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "queue",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.792554553001537,
+      "total_tokens": 7941,
+      "cost": 0.0120795,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "cs_005",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "160",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.926339462002943,
+      "total_tokens": 8071,
+      "cost": 0.0099729,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "logic_003",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "true",
+      "routed_level": "high",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.768791353999404,
+      "total_tokens": 8066,
+      "cost": 0.0075762,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "logic_004",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "Yes",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.496918126002129,
+      "total_tokens": 8147,
+      "cost": 0.0084045,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "probability_003",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "1/6",
+      "routed_level": "high",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.855416742997477,
+      "total_tokens": 8083,
+      "cost": 0.0097953,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "probability_004",
+      "policy": "auto_adaptive",
+      "trial": 1,
+      "response": "3/4",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.9,
+      "elapsed_seconds": 7.944177428002149,
+      "total_tokens": 8193,
+      "cost": 0.0087615,
+      "quality_pass": true,
+      "error": null
+    }
+  ]
+}

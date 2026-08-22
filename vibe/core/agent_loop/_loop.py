@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Callable, Generator, Sequence
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Sequence
 import contextlib
 import copy
 from dataclasses import dataclass, replace
@@ -94,6 +94,7 @@ from vibe.core.reasoning import (
     build_critic_messages,
     build_probe_messages,
     clamp_thinking_level,
+    infer_reasoning_floor,
     is_high_consequence_request,
     is_high_risk_request,
     is_trivial_request,
@@ -187,6 +188,7 @@ from vibe.core.types import (
     RateLimitError,
     ReasoningEvent,
     ReasoningRoutingEvent,
+    ReasoningRoutingProgressEvent,
     RefusalError,
     ResponseTooLongError,
     Role,
@@ -1278,7 +1280,34 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
         if self._active_turn is not None:
             raise AgentLoopStateError("A turn is already active")
         options = turn_options or AgentTurnOptions()
-        routing = await self._resolve_turn_thinking(msg, active_model)
+        progress_queue: asyncio.Queue[ReasoningRoutingProgressEvent] = asyncio.Queue()
+        routing_task = asyncio.create_task(
+            self._resolve_turn_thinking(msg, active_model, progress_queue.put),
+            name="resolve-auto-thinking",
+        )
+        try:
+            while not routing_task.done() or not progress_queue.empty():
+                if not progress_queue.empty():
+                    yield progress_queue.get_nowait()
+                    continue
+                progress_task = asyncio.create_task(
+                    progress_queue.get(), name="wait-auto-thinking-progress"
+                )
+                done, _ = await asyncio.wait(
+                    (routing_task, progress_task), return_when=asyncio.FIRST_COMPLETED
+                )
+                if progress_task in done:
+                    yield progress_task.result()
+                    continue
+                progress_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await progress_task
+            routing = await routing_task
+        except BaseException:
+            routing_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await routing_task
+            raise
         self._active_turn = _ActiveTurn(
             subagent_runner=subagent_runner,
             tool_io=tool_io,
@@ -2579,12 +2608,28 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
         return model.model_copy(update={"thinking": turn.resolved_thinking})
 
     async def _resolve_turn_thinking(
-        self, request: str, model: ModelConfig | None
+        self,
+        request: str,
+        model: ModelConfig | None,
+        progress: Callable[[ReasoningRoutingProgressEvent], Awaitable[None]]
+        | None = None,
     ) -> ReasoningRoutingDecision | None:
         if model is None or model.thinking != "auto":
             return None
+
+        async def emit(
+            stage: Literal["analyzing", "probing", "verifying", "selecting"],
+            message: str,
+        ) -> None:
+            if progress is not None:
+                await progress(
+                    ReasoningRoutingProgressEvent(stage=stage, message=message)
+                )
+
+        await emit("analyzing", "Scanning task complexity…")
         router_config = self.config.reasoning_router
         if is_high_risk_request(request):
+            await emit("selecting", "Risk guard triggered · shifting to high…")
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
                     "high", minimum=router_config.minimum, maximum=router_config.maximum
@@ -2593,8 +2638,9 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
                 reason="high_risk",
             )
         if router_config.strategy == "value":
-            return await self._resolve_value_thinking(request, model)
+            return await self._resolve_value_thinking(request, model, progress=progress)
         if is_trivial_request(request):
+            await emit("selecting", "Fast path matched · staying efficient…")
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
                     "low", minimum=router_config.minimum, maximum=router_config.maximum
@@ -2603,6 +2649,11 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
                 reason="fast_path",
             )
         probe_model = model.model_copy(update={"thinking": "low"})
+        reasoning_floor = clamp_thinking_level(
+            infer_reasoning_floor(request),
+            minimum=router_config.minimum,
+            maximum=router_config.maximum,
+        )
         try:
 
             async def run_probe(perspective: ProbePerspective) -> ProbeDecision:
@@ -2616,18 +2667,25 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
                 )
                 return ProbeDecision.parse_response(result.message.content or "")
 
+            await emit("probing", "Running low-cost stability probe…")
             baseline = await run_probe(ProbePerspective.DECISION_FIRST)
             decisions = [baseline]
             if router_config.probe_count > 1 and should_run_critic(baseline, request):
+                await emit("verifying", "Checking the first route for uncertainty…")
                 decisions.append(await run_probe(ProbePerspective.CRITIC))
-            return route_probe_decisions(
+            decision = route_probe_decisions(
                 decisions,
-                minimum=router_config.minimum,
+                minimum=reasoning_floor,
                 maximum=router_config.maximum,
                 high_consequence=is_high_consequence_request(request),
             )
+            await emit(
+                "selecting", f"Evidence resolved · shifting to {decision.level}…"
+            )
+            return decision
         except Exception:
             logger.warning("Auto-thinking probes failed", exc_info=True)
+            await emit("selecting", "Probe unavailable · using safe fallback…")
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
                     "medium",
@@ -2639,11 +2697,26 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             )
 
     async def _resolve_value_thinking(
-        self, request: str, model: ModelConfig
+        self,
+        request: str,
+        model: ModelConfig,
+        *,
+        progress: Callable[[ReasoningRoutingProgressEvent], Awaitable[None]]
+        | None = None,
     ) -> ReasoningRoutingDecision:
         router_config = self.config.reasoning_router
         probe_model = model.model_copy(update={"thinking": "low"})
+
+        async def emit(
+            stage: Literal["probing", "verifying", "selecting"], message: str
+        ) -> None:
+            if progress is not None:
+                await progress(
+                    ReasoningRoutingProgressEvent(stage=stage, message=message)
+                )
+
         try:
+            await emit("probing", "Drafting a low-cost candidate…")
             candidate_result = await self._complete(
                 model=probe_model,
                 messages=build_candidate_messages(request),
@@ -2655,6 +2728,17 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             candidate = CandidateAssessment.parse_response(
                 candidate_result.message.content or ""
             )
+            if candidate.risk == "high":
+                decision = route_candidate(
+                    request,
+                    candidate,
+                    None,
+                    minimum=router_config.minimum,
+                    maximum=router_config.maximum,
+                )
+                await emit("selecting", "Candidate exposed high risk · escalating…")
+                return decision
+            await emit("verifying", "Critiquing candidate for material defects…")
             critique_result = await self._complete(
                 model=probe_model,
                 messages=build_critic_messages(request, candidate),
@@ -2666,15 +2750,20 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             critique = CandidateCritique.parse_response(
                 critique_result.message.content or ""
             )
-            return route_candidate(
+            decision = route_candidate(
                 request,
                 candidate,
                 critique,
                 minimum=router_config.minimum,
                 maximum=router_config.maximum,
             )
+            await emit(
+                "selecting", f"Value check complete · shifting to {decision.level}…"
+            )
+            return decision
         except Exception:
             logger.warning("Value router failed", exc_info=True)
+            await emit("selecting", "Value check unavailable · using safe fallback…")
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
                     "medium",

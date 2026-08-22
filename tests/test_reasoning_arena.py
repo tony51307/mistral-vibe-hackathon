@@ -5,8 +5,18 @@ from scripts.reasoning_arena import (
     ArenaResult,
     ArenaTask,
     _result_from_history,
+    load_repo_problem_tasks,
     render_markdown,
 )
+
+
+def test_loads_repository_problem_bank() -> None:
+    tasks = load_repo_problem_tasks()
+
+    assert len(tasks) == 25
+    assert tasks[0].id == "math_001"
+    assert tasks[0].response_match == "accepted"
+    assert tasks[0].accepted_responses == ["45", "45.0"]
 
 
 def test_result_extracts_auto_thinking_route() -> None:

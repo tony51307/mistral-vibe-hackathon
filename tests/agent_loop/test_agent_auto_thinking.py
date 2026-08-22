@@ -9,7 +9,7 @@ from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
 from vibe.core.config import ModelConfig
 from vibe.core.reasoning import is_high_risk_request
-from vibe.core.types import ReasoningRoutingEvent
+from vibe.core.types import ReasoningRoutingEvent, ReasoningRoutingProgressEvent
 
 
 class ModelRecordingBackend(FakeBackend):
@@ -77,6 +77,36 @@ async def test_auto_thinking_routes_low_risk_disagreement_to_medium() -> None:
 
 
 @pytest.mark.asyncio
+async def test_auto_thinking_applies_intrinsic_reasoning_floor() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"action":"answer","targets":[],'
+                '"risk":"low","confidence":0.95}'
+            )
+        ],
+        [mock_llm_chunk(content="5/33")],
+    ])
+    config = build_test_vibe_config()
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [
+        event
+        async for event in agent.act(
+            "What is the probability of exactly two successes?"
+        )
+    ]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "high"
+    assert [model.thinking for model in backend.requested_models] == ["low", "high"]
+
+
+@pytest.mark.asyncio
 async def test_auto_thinking_skips_critic_for_confident_probe() -> None:
     backend = ModelRecordingBackend([
         [
@@ -99,6 +129,12 @@ async def test_auto_thinking_skips_critic_for_confident_probe() -> None:
     )
     assert routing.level == "low"
     assert routing.stability == 0.9
+    stages = [
+        event.stage
+        for event in events
+        if isinstance(event, ReasoningRoutingProgressEvent)
+    ]
+    assert stages == ["analyzing", "probing", "selecting"]
     assert [model.thinking for model in backend.requested_models] == ["low", "low"]
 
 
@@ -218,6 +254,31 @@ async def test_value_router_escalates_material_critique() -> None:
 
 
 @pytest.mark.asyncio
+async def test_value_router_skips_critic_for_high_risk_candidate() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"candidate":"Audit authorization", "assumptions":[],'
+                '"risk":"high","confidence":0.9,"cheaply_verifiable":false}'
+            )
+        ],
+        [mock_llm_chunk(content="Audit authorization before making changes")],
+    ])
+    config = build_test_vibe_config(reasoning_router={"strategy": "value"})
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [event async for event in agent.act("Audit authorization boundaries")]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "high"
+    assert [model.thinking for model in backend.requested_models] == ["low", "high"]
+
+
+@pytest.mark.asyncio
 async def test_explicit_thinking_skips_probes() -> None:
     backend = ModelRecordingBackend([[mock_llm_chunk(content="Done")]])
     config = build_test_vibe_config()
@@ -227,7 +288,10 @@ async def test_explicit_thinking_skips_probes() -> None:
 
     events = [event async for event in agent.act("Make the change")]
 
-    assert not any(isinstance(event, ReasoningRoutingEvent) for event in events)
+    assert not any(
+        isinstance(event, ReasoningRoutingEvent | ReasoningRoutingProgressEvent)
+        for event in events
+    )
     assert [model.thinking for model in backend.requested_models] == ["medium"]
 
 
@@ -271,7 +335,7 @@ async def test_auto_thinking_skips_probes_for_trivial_request() -> None:
     config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
     agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
 
-    events = [event async for event in agent.act("Answer only with READY.")]
+    events = [event async for event in agent.act("Fix a typo in the README heading.")]
 
     routing = next(
         event for event in events if isinstance(event, ReasoningRoutingEvent)

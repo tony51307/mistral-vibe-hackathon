@@ -778,6 +778,12 @@ class ReasoningRoutingNoticeDetail(ProtocolModel):
     reason: str
 
 
+class ReasoningRoutingProgressNoticeDetail(ProtocolModel):
+    kind: Literal["reasoning_routing_progress"] = "reasoning_routing_progress"
+    stage: Literal["analyzing", "probing", "verifying", "selecting"]
+    message: str
+
+
 class ScheduledLoopFiredNoticeDetail(ProtocolModel):
     kind: Literal["scheduled_loop_fired"] = "scheduled_loop_fired"
     loop_id: str
@@ -792,6 +798,7 @@ NoticeDetail = Annotated[
     | PlanReviewEndedNoticeDetail
     | WaitingForInputNoticeDetail
     | ReasoningRoutingNoticeDetail
+    | ReasoningRoutingProgressNoticeDetail
     | ScheduledLoopFiredNoticeDetail,
     Field(discriminator="kind"),
 ]

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from datetime import UTC, datetime
+from fractions import Fraction
 import json
 import os
 from pathlib import Path
@@ -10,8 +11,9 @@ import sys
 import time
 from typing import Literal, cast
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
+from problems import PROBLEMS
 from vibe.core.paths import SESSION_LOG_DIR
 from vibe.utils.io import read_safe
 
@@ -27,7 +29,8 @@ class ArenaTask(BaseModel):
     expected_auto_level: Literal["low", "high"]
     category: str = "general"
     expected_response: str | None = None
-    response_match: Literal["exact", "contains"] = "exact"
+    response_match: Literal["exact", "contains", "accepted"] = "exact"
+    accepted_responses: list[str] = Field(default_factory=list)
 
 
 class ArenaResult(BaseModel):
@@ -64,6 +67,11 @@ def parse_arguments() -> argparse.Namespace:
         default=Path(__file__).with_name("reasoning_arena_tasks.json"),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("arena-results"))
+    parser.add_argument(
+        "--repo-problems",
+        action="store_true",
+        help="Evaluate the repository's built-in deterministic problem bank",
+    )
     parser.add_argument("--model", default="mistral-vibe-cli-latest")
     parser.add_argument("--alias", default="mistral-medium-3.5")
     parser.add_argument(
@@ -80,6 +88,25 @@ def parse_arguments() -> argparse.Namespace:
 def load_tasks(path: Path, limit: int | None = None) -> list[ArenaTask]:
     payload = json.loads(read_safe(path, raise_on_error=True).text)
     tasks = [ArenaTask.model_validate(item) for item in payload]
+    return tasks[:limit] if limit is not None else tasks
+
+
+def load_repo_problem_tasks(limit: int | None = None) -> list[ArenaTask]:
+    tasks = [
+        ArenaTask(
+            id=problem.id,
+            title=f"{problem.category}: {problem.id}",
+            prompt=f"{problem.question}\nAnswer only with the final answer.",
+            expected_auto_level=(
+                "low" if problem.hidden_difficulty in {"easy", "medium"} else "high"
+            ),
+            category=problem.category,
+            expected_response=problem.answer,
+            response_match="accepted",
+            accepted_responses=list(problem.accepted_answers),
+        )
+        for problem in PROBLEMS
+    ]
     return tasks[:limit] if limit is not None else tasks
 
 
@@ -333,7 +360,36 @@ def _quality_pass(task: ArenaTask, response: str) -> bool | None:
     expected = " ".join(task.expected_response.casefold().split())
     if task.response_match == "contains":
         return expected in actual
+    if task.response_match == "accepted":
+        return _matches_accepted_response(response, task.accepted_responses)
     return actual == expected
+
+
+def _matches_accepted_response(response: str, accepted: list[str]) -> bool:
+    normalized = response.strip().casefold().replace(" ", "")
+    normalized_accepted = {
+        answer.strip().casefold().replace(" ", "") for answer in accepted
+    }
+    if normalized in normalized_accepted:
+        return True
+    try:
+        submitted = _as_fraction(response)
+    except (ValueError, ZeroDivisionError):
+        return False
+    for answer in accepted:
+        try:
+            if submitted == _as_fraction(answer):
+                return True
+        except (ValueError, ZeroDivisionError):
+            continue
+    return False
+
+
+def _as_fraction(value: str) -> Fraction:
+    cleaned = value.strip().casefold().replace(" ", "")
+    if cleaned.endswith("%"):
+        return Fraction(cleaned[:-1]) / 100
+    return Fraction(cleaned)
 
 
 def _append_comparisons(
@@ -375,7 +431,11 @@ async def run() -> int:
     args = parse_arguments()
     if args.repeats < 1:
         raise ValueError("--repeats must be at least 1")
-    tasks = load_tasks(args.tasks, args.limit)
+    tasks = (
+        load_repo_problem_tasks(args.limit)
+        if args.repo_problems
+        else load_tasks(args.tasks, args.limit)
+    )
     policies: list[Policy] = args.policies or [
         "low",
         "high",

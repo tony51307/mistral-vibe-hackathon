@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pay-to-think-dealer"
+version = "0.1.0"
+description = "Deterministic dealer core and answer judge for Pay-to-Think"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0,<7"]
+
+[tool.setuptools]
+packages = ["game"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

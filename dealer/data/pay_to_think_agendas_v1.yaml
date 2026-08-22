@@ -1,0 +1,688 @@
+schema_version: '1.0'
+problem_bank: pay_to_think_problem_bank_v1.json
+default_season_rounds: 25
+dealer_visibility_rule:
+  agent_receives:
+  - problem_id
+  - category
+  - prompt_markdown
+  dealer_only:
+  - answer
+  - dealer_meta
+  - dealer_difficulty
+  - guessability
+agendas:
+- strategy_number: 1
+  name: balanced_ramp
+  objective: Warm up with cheap/trivial wins, then gradually raise difficulty while
+    keeping categories interleaved.
+  round_count: 25
+  selection_strategy:
+    type: fixed_order
+    notes: Difficulty generally ramps from trivial/easy to medium/hard/very_hard;
+      categories are mixed.
+  rounds:
+  - round: 1
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 2
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 3
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 4
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 5
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 6
+    problem_id: quant_003
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 7
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 8
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+  - round: 9
+    problem_id: prob_003
+    category: probability
+    dealer_difficulty: easy
+    guessability: high
+  - round: 10
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+  - round: 11
+    problem_id: quant_005
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 12
+    problem_id: cs_005
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 13
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+  - round: 14
+    problem_id: prob_006
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 15
+    problem_id: alg_005
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 16
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 17
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 18
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+  - round: 19
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 20
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+  - round: 21
+    problem_id: quant_009
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 22
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 23
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 24
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 25
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+- strategy_number: 2
+  name: bait_and_switch
+  objective: Train agents to distrust category-only priors by alternating deceptively
+    easy and unexpectedly hard problems.
+  round_count: 25
+  selection_strategy:
+    type: fixed_order
+    notes: Hard/easy alternation is intentional; several answers are highly guessable.
+  rounds:
+  - round: 1
+    problem_id: prob_008
+    category: probability
+    dealer_difficulty: hard
+    guessability: high
+  - round: 2
+    problem_id: cs_010
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 3
+    problem_id: quant_002
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 4
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 5
+    problem_id: alg_002
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 6
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 7
+    problem_id: cs_002
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 8
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 9
+    problem_id: logic_002
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 10
+    problem_id: alg_010
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 11
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 12
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+  - round: 13
+    problem_id: quant_008
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 14
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+  - round: 15
+    problem_id: alg_004
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 16
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 17
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 18
+    problem_id: cs_004
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 19
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 20
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+  - round: 21
+    problem_id: prob_010
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 22
+    problem_id: quant_004
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: high
+  - round: 23
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 24
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+  - round: 25
+    problem_id: alg_008
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+- strategy_number: 3
+  name: jackpot_pressure
+  objective: Increase the chance of unanswered rounds and rollovers, then insert solvable
+    rounds that make the accumulated pot strategically important.
+  round_count: 25
+  selection_strategy:
+    type: fixed_order
+    notes: Clusters hard/very-hard problems before easier reset opportunities. Useful
+      for testing whether higher pots trigger more reasoning.
+  rounds:
+  - round: 1
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 2
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 3
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 4
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 5
+    problem_id: quant_009
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 6
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 7
+    problem_id: prob_003
+    category: probability
+    dealer_difficulty: easy
+    guessability: high
+  - round: 8
+    problem_id: cs_010
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 9
+    problem_id: prob_010
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 10
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 11
+    problem_id: alg_010
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 12
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 13
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 14
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 15
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+  - round: 16
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 17
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+  - round: 18
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+  - round: 19
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 20
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 21
+    problem_id: alg_002
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 22
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 23
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+  - round: 24
+    problem_id: prob_008
+    category: probability
+    dealer_difficulty: hard
+    guessability: high
+  - round: 25
+    problem_id: quant_008
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+- strategy_number: 4
+  name: category_specialization
+  objective: Use category blocks so agents can learn and signal category-specific
+    confidence, reputation, and bankroll allocation.
+  round_count: 25
+  selection_strategy:
+    type: fixed_order
+    notes: Five-round blocks by category; each block spans difficulty levels.
+  rounds:
+  - round: 1
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 2
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 3
+    problem_id: cs_005
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 4
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 5
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 6
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 7
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+  - round: 8
+    problem_id: alg_005
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 9
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+  - round: 10
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 11
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 12
+    problem_id: prob_003
+    category: probability
+    dealer_difficulty: easy
+    guessability: high
+  - round: 13
+    problem_id: prob_006
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 14
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 15
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 16
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 17
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+  - round: 18
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+  - round: 19
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+  - round: 20
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 21
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 22
+    problem_id: quant_003
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 23
+    problem_id: quant_005
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 24
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 25
+    problem_id: quant_009
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+- strategy_number: 5
+  name: seeded_mixed_benchmark
+  objective: Provide a reproducible but non-obvious mixed benchmark for comparing
+    agent policies across repeated experiments.
+  round_count: 25
+  selection_strategy:
+    type: seeded_sample_without_replacement
+    seed: 260822
+    notes: Exactly five problems per category, shuffled with a fixed seed. Reuse the
+      same agenda for A/B tests.
+  rounds:
+  - round: 1
+    problem_id: prob_002
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 2
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 3
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 4
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 5
+    problem_id: cs_005
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 6
+    problem_id: logic_008
+    category: logic
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 7
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 8
+    problem_id: quant_004
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: high
+  - round: 9
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+  - round: 10
+    problem_id: alg_005
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 11
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 12
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 13
+    problem_id: cs_010
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+  - round: 14
+    problem_id: logic_004
+    category: logic
+    dealer_difficulty: easy
+    guessability: medium
+  - round: 15
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 16
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+  - round: 17
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+  - round: 18
+    problem_id: logic_002
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 19
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+  - round: 20
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+  - round: 21
+    problem_id: quant_006
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+  - round: 22
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+  - round: 23
+    problem_id: prob_010
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: medium
+  - round: 24
+    problem_id: prob_004
+    category: probability
+    dealer_difficulty: easy
+    guessability: low
+  - round: 25
+    problem_id: prob_006
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium

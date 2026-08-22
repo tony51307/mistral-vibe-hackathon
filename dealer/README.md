@@ -18,6 +18,7 @@ game/
   rotation.py            fixed-agenda problem cursor
 data/                     canonical V1 bank and five agendas
 docs/                     source implementation guide
+tables/                   2-to-8-agent economy instructions and presets
 tests/                    judge, economy, loader, and visibility tests
 ```
 
@@ -37,6 +38,8 @@ Validate the canonical files and select an agenda without starting provider call
 .venv/bin/python -m game.dealer_distributor \
   --bank data/pay_to_think_problem_bank_v1.json \
   --agendas data/pay_to_think_agendas_v1.yaml \
+  --tables tables/table_modes_v1.yaml \
+  --table baseline \
   --strategy 3 \
   --seed 260822 \
   --validate-only
@@ -47,17 +50,19 @@ Validate the canonical files and select an agenda without starting provider call
 The host application advances the state machine explicitly:
 
 ```python
-from game import DealerGame, GameConfig, load_agendas, load_problem_bank
+from game import DealerGame, load_agendas, load_problem_bank, load_table_modes
 
 bank = load_problem_bank("data/pay_to_think_problem_bank_v1.json")
 agendas = load_agendas("data/pay_to_think_agendas_v1.yaml", bank)
-game = DealerGame(
+tables = load_table_modes("tables/table_modes_v1.yaml", agendas)
+game = DealerGame.from_table_mode(
+    table_catalog=tables,
+    mode_id="baseline",
     player_ids=["fast", "always_think", "dynamic", "control"],
     problem_bank=bank,
     agenda_catalog=agendas,
     strategy_number=3,
     seed=260822,
-    config=GameConfig(),
     output_path="runs/strategy_3_run_001.jsonl",
 )
 
@@ -74,12 +79,15 @@ event = game.complete_round()
 
 Each router is called with a public payload and returns `{"reasoning_tier": "medium"}`. Each solver returns `{"answer": "1/2"}` and may add token, latency, model, and API-reasoning telemetry fields. The judge ignores every solver field except `answer` for correctness.
 
+See [tables/README.md](tables/README.md) for the heads-up, baseline, demo, and tournament configurations. Table modes derive a fixed season contribution of `$3 × initial agents`; the direct `player_ids` constructor remains available for isolated tests and custom hosts.
+
 ## Invariants
 
 - The problem bank is authoritative. Agenda category, difficulty, and guessability must match it exactly.
 - Category reveal omits problem identity; problem reveal is built from a three-field public whitelist.
 - The five hidden metadata/answer fields are covered by recursive visibility tests.
 - Entry and pot amounts use integer cents. Reasoning spend is burned, never added to the pot.
+- Supported table modes use 2–8 initial agents and freeze `H = $3 × N0` for the season.
 - Split remainders roll forward instead of being assigned randomly.
 - Show Hand stakes the remaining bankroll and forces a zero-cost base answer.
 - A V1 edge case exists when bankroll equals the entry fee exactly: the player can legally enter but cannot afford the priced `none` tier. The core forces a zero-cost base answer and logs `router_fallback=true`, preserving both the frozen entry rule and the no-negative-bankroll invariant.

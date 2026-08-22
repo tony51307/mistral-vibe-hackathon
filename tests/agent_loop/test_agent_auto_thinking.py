@@ -42,12 +42,12 @@ def test_explicit_safety_patterns_route_to_high(prompt: str) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auto_thinking_routes_disagreement_to_high() -> None:
+async def test_auto_thinking_routes_low_risk_disagreement_to_medium() -> None:
     backend = ModelRecordingBackend([
         [
             mock_llm_chunk(
                 content='{"action":"inspect","targets":["core"],'
-                '"risk":"low","confidence":0.8}'
+                '"risk":"low","confidence":0.6}'
             )
         ],
         [
@@ -64,6 +64,69 @@ async def test_auto_thinking_routes_disagreement_to_high() -> None:
     agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
 
     events = [event async for event in agent.act("Make the change")]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "medium"
+    assert [model.thinking for model in backend.requested_models] == [
+        "low",
+        "low",
+        "medium",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_auto_thinking_skips_critic_for_confident_probe() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"action":"inspect","targets":["core"],'
+                '"risk":"low","confidence":0.9}'
+            )
+        ],
+        [mock_llm_chunk(content="Done")],
+    ])
+    config = build_test_vibe_config()
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [event async for event in agent.act("Inspect the helper")]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "low"
+    assert routing.stability == 0.9
+    assert [model.thinking for model in backend.requested_models] == ["low", "low"]
+
+
+@pytest.mark.asyncio
+async def test_auto_thinking_runs_critic_for_high_consequence_request() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"action":"answer","targets":["auth checks"],'
+                '"risk":"low","confidence":1.0}'
+            )
+        ],
+        [
+            mock_llm_chunk(
+                content='{"action":"answer","targets":["auth checks"],'
+                '"risk":"medium","confidence":0.9}'
+            )
+        ],
+        [mock_llm_chunk(content="Do not disable authentication")],
+    ])
+    config = build_test_vibe_config()
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [
+        event async for event in agent.act("Should we disable authentication globally?")
+    ]
 
     routing = next(
         event for event in events if isinstance(event, ReasoningRoutingEvent)

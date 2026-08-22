@@ -90,9 +90,11 @@ from vibe.core.reasoning import (
     ReasoningRoutingDecision,
     build_probe_messages,
     clamp_thinking_level,
+    is_high_consequence_request,
     is_high_risk_request,
     is_trivial_request,
     route_probe_decisions,
+    should_run_critic,
 )
 from vibe.core.review import ReviewManager
 from vibe.core.rewind import RewindManager
@@ -2586,9 +2588,8 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             )
         probe_model = model.model_copy(update={"thinking": "low"})
         try:
-            decisions: list[ProbeDecision] = []
-            perspectives = (ProbePerspective.DECISION_FIRST, ProbePerspective.CRITIC)
-            for perspective in perspectives[: router_config.probe_count]:
+
+            async def run_probe(perspective: ProbePerspective) -> ProbeDecision:
                 result = await self._complete(
                     model=probe_model,
                     messages=build_probe_messages(request, perspective),
@@ -2597,11 +2598,17 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
                     call_type="secondary_call",
                     max_tokens_override=router_config.max_probe_tokens,
                 )
-                decisions.append(
-                    ProbeDecision.parse_response(result.message.content or "")
-                )
+                return ProbeDecision.parse_response(result.message.content or "")
+
+            baseline = await run_probe(ProbePerspective.DECISION_FIRST)
+            decisions = [baseline]
+            if router_config.probe_count > 1 and should_run_critic(baseline, request):
+                decisions.append(await run_probe(ProbePerspective.CRITIC))
             return route_probe_decisions(
-                decisions, minimum=router_config.minimum, maximum=router_config.maximum
+                decisions,
+                minimum=router_config.minimum,
+                maximum=router_config.maximum,
+                high_consequence=is_high_consequence_request(request),
             )
         except Exception:
             logger.warning("Auto-thinking probes failed", exc_info=True)

@@ -227,10 +227,10 @@ auto_compact_threshold = 200000
 supports_images = true            # vision-capable; allows @-mentioned images
 
 [reasoning_router]
-probe_count = 2                    # 1 or 2 isolated low-thinking probes
+probe_count = 2                    # maximum probes; critic runs only when uncertain
 minimum = "low"                   # lower bound for the routed level
 maximum = "high"                  # upper bound for the routed level
-max_probe_tokens = 256             # output-token cap for each probe
+max_probe_tokens = 128             # output-token cap for each compact probe
 
 [[models]]
 name = "devstral-small-latest"

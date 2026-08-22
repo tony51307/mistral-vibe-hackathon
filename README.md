@@ -68,6 +68,7 @@ Evaluation artifacts include:
 - `arena-results-expanded/report.md`: a 20-task Low/High/Auto comparison before
   the latest safety tuning.
 - `arena-results-tuned/report.md`: post-tuning AutoThink routing verification.
+- `arena-results-adaptive/report.md`: one-model adaptive-probe evaluation.
 
 The expanded runner accepts `--repeats N` for repeated trials. The current
 single-trial reports expose substantial latency and cost variance, so they should

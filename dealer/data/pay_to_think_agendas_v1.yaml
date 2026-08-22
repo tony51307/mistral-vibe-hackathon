@@ -11,6 +11,22 @@ dealer_visibility_rule:
   - dealer_meta
   - dealer_difficulty
   - guessability
+  - reference_reasoning_tier
+  - round_role
+  - strategy_number
+  - objective
+  - dynamic_advantage
+dynamic_edge_strategy_notes:
+  source_catalog_revision: '2.0'
+  purpose: Showcase and stress-test the economic value of adaptive reasoning. Do not
+    use these strategies alone as an unbiased benchmark.
+  design_principles:
+  - Make the marginal value of reasoning change sharply.
+  - Tax always-high policies with cheap, high-prior questions.
+  - Expose always-none policies with low-prior, hard questions.
+  - Concentrate low/medium decision-boundary questions where dynamic routing can earn margin.
+  - Order rounds so preserving capital matters later, not only per-question accuracy.
+  - Pair showcase agendas with seeded mixed or random agendas for scientific claims.
 agendas:
 - strategy_number: 1
   name: balanced_ramp
@@ -686,3 +702,934 @@ agendas:
     category: probability
     dealer_difficulty: medium
     guessability: medium
+- strategy_number: 6
+  name: adaptive_sawtooth
+  showcase_bias: true
+  objective: Alternate cheap/high-prior rounds with expensive low-prior rounds so a static reasoning tier is repeatedly
+    wrong.
+  dynamic_advantage:
+  - Always-high burns extra capital on trivial/easy rounds where marginal reasoning value is small.
+  - Always-none is exposed immediately on hard/very-hard rounds.
+  - Frequent switching rewards a router that can change effort problem by problem.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 2
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 3
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 4
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 5
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 6
+    problem_id: quant_009
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 7
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 8
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 9
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 10
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 11
+    problem_id: quant_004
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 12
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 13
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 14
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 15
+    problem_id: alg_004
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 16
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 17
+    problem_id: cs_002
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 18
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 19
+    problem_id: prob_003
+    category: probability
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 20
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 21
+    problem_id: quant_002
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 22
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 23
+    problem_id: logic_004
+    category: logic
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 24
+    problem_id: prob_010
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 25
+    problem_id: alg_008
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+- strategy_number: 7
+  name: budget_then_battle
+  showcase_bias: true
+  objective: Give adaptive agents a chance to preserve/build bankroll on cheap rounds before a difficult late-game
+    block where preserved capital can be converted into reasoning.
+  dynamic_advantage:
+  - 'The opening is deliberately cheap: high reasoning buys little but costs four extra dollars versus none.'
+  - The middle moves through low/medium-value reasoning decisions.
+  - The final block requires substantial reasoning, so agents that conserved capital can still afford high tiers.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 2
+    problem_id: alg_002
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 3
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 4
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 5
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 6
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 7
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 8
+    problem_id: quant_004
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 9
+    problem_id: prob_005
+    category: probability
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 10
+    problem_id: logic_005
+    category: logic
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 11
+    problem_id: cs_005
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: decision_boundary
+  - round: 12
+    problem_id: alg_006
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 13
+    problem_id: quant_005
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: decision_boundary
+  - round: 14
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 15
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 16
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 17
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 18
+    problem_id: quant_009
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 19
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 20
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 21
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 22
+    problem_id: alg_010
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 23
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 24
+    problem_id: cs_010
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 25
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+- strategy_number: 8
+  name: guessability_traps
+  showcase_bias: true
+  objective: Separate true reasoning need from answer-prior/guessability effects; reward routers that detect instability
+    instead of mapping surface difficulty directly to spend.
+  dynamic_advantage:
+  - Early high-guessability questions tempt cheap policies and can make expensive reasoning wasteful.
+  - Low-guessability medium/hard questions then punish pure answer-prior gambling.
+  - The final easy/trivial block tests whether the router can become cheap again after a difficult stretch.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+    reference_reasoning_tier: medium
+    round_role: guessability_trap
+  - round: 2
+    problem_id: prob_008
+    category: probability
+    dealer_difficulty: hard
+    guessability: high
+    reference_reasoning_tier: medium
+    round_role: guessability_trap
+  - round: 3
+    problem_id: quant_008
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 4
+    problem_id: logic_005
+    category: logic
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 5
+    problem_id: prob_005
+    category: probability
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 6
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 7
+    problem_id: logic_003
+    category: logic
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 8
+    problem_id: prob_004
+    category: probability
+    dealer_difficulty: easy
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 9
+    problem_id: cs_006
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 10
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 11
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 12
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 13
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 14
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 15
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 16
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 17
+    problem_id: logic_009
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 18
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 19
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 20
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 21
+    problem_id: quant_002
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 22
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 23
+    problem_id: cs_002
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 24
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 25
+    problem_id: prob_002
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+- strategy_number: 9
+  name: reasoning_tier_ladder
+  showcase_bias: true
+  objective: Create a broad middle where low/medium reasoning is economically useful; this is the cleanest test
+    against both always-none and always-high.
+  dynamic_advantage:
+  - Five none-like rounds punish always-high.
+  - Five low-like and ten medium-like rounds create the largest room for an adaptive margin.
+  - Five high-like rounds ensure always-none cannot win simply by being cheap.
+  - The agenda tests whether the agent uses the whole price ladder rather than only the extremes.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: quant_001
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 2
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 3
+    problem_id: logic_001
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 4
+    problem_id: prob_001
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 5
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 6
+    problem_id: cs_003
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 7
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 8
+    problem_id: prob_005
+    category: probability
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 9
+    problem_id: logic_005
+    category: logic
+    dealer_difficulty: medium
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: guessability_trap
+  - round: 10
+    problem_id: quant_005
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: decision_boundary
+  - round: 11
+    problem_id: cs_006
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 12
+    problem_id: cs_007
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 13
+    problem_id: alg_005
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 14
+    problem_id: alg_006
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 15
+    problem_id: alg_008
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 16
+    problem_id: prob_004
+    category: probability
+    dealer_difficulty: easy
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 17
+    problem_id: prob_006
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 18
+    problem_id: prob_008
+    category: probability
+    dealer_difficulty: hard
+    guessability: high
+    reference_reasoning_tier: medium
+    round_role: guessability_trap
+  - round: 19
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 20
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 21
+    problem_id: cs_009
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 22
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 23
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 24
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 25
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+- strategy_number: 10
+  name: repeated_five_step_ladders
+  showcase_bias: true
+  objective: Repeat trivial-to-very-hard ladders with changing categories so no static tier or simple category policy
+    remains optimal for long.
+  dynamic_advantage:
+  - Every five-round mini-cycle requires the router to move from cheap to expensive reasoning.
+  - Categories rotate across difficulty positions, reducing category-as-difficulty shortcuts.
+  - Repeated cycles make dynamic behavior visible to the audience and provide multiple within-game replications.
+  round_count: 25
+  rounds:
+  - round: 1
+    problem_id: cs_001
+    category: computer_science
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 2
+    problem_id: alg_003
+    category: algorithms
+    dealer_difficulty: easy
+    guessability: high
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 3
+    problem_id: prob_006
+    category: probability
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 4
+    problem_id: logic_007
+    category: logic
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 5
+    problem_id: quant_010
+    category: general_quantitative_reasoning
+    dealer_difficulty: very_hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 6
+    problem_id: prob_002
+    category: probability
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 7
+    problem_id: logic_004
+    category: logic
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 8
+    problem_id: quant_005
+    category: general_quantitative_reasoning
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: decision_boundary
+  - round: 9
+    problem_id: cs_008
+    category: computer_science
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 10
+    problem_id: alg_009
+    category: algorithms
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 11
+    problem_id: alg_001
+    category: algorithms
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 12
+    problem_id: quant_003
+    category: general_quantitative_reasoning
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 13
+    problem_id: cs_006
+    category: computer_science
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 14
+    problem_id: prob_007
+    category: probability
+    dealer_difficulty: hard
+    guessability: medium
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 15
+    problem_id: logic_010
+    category: logic
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 16
+    problem_id: logic_002
+    category: logic
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 17
+    problem_id: cs_004
+    category: computer_science
+    dealer_difficulty: easy
+    guessability: medium
+    reference_reasoning_tier: low
+    round_role: cheap_capture
+  - round: 18
+    problem_id: alg_006
+    category: algorithms
+    dealer_difficulty: medium
+    guessability: medium
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 19
+    problem_id: quant_007
+    category: general_quantitative_reasoning
+    dealer_difficulty: hard
+    guessability: high
+    reference_reasoning_tier: medium
+    round_role: guessability_trap
+  - round: 20
+    problem_id: prob_009
+    category: probability
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 21
+    problem_id: quant_002
+    category: general_quantitative_reasoning
+    dealer_difficulty: trivial
+    guessability: high
+    reference_reasoning_tier: none
+    round_role: cheap_capture
+  - round: 22
+    problem_id: prob_004
+    category: probability
+    dealer_difficulty: easy
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 23
+    problem_id: logic_006
+    category: logic
+    dealer_difficulty: medium
+    guessability: low
+    reference_reasoning_tier: medium
+    round_role: decision_boundary
+  - round: 24
+    problem_id: alg_007
+    category: algorithms
+    dealer_difficulty: hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff
+  - round: 25
+    problem_id: cs_010
+    category: computer_science
+    dealer_difficulty: very_hard
+    guessability: low
+    reference_reasoning_tier: high
+    round_role: reasoning_payoff

@@ -69,6 +69,11 @@ game = DealerGame.from_agent_roster(
 
 The roster fixes player IDs, profile bindings, the initial seat count, and a recommended agenda. The dealer derives the season-wide contribution as `$3 × initial agents`, so `social_6` uses `$18` and `social_10` uses `$30`. The value remains fixed after eliminations.
 
+The host may override a roster recommendation with any registered positive
+strategy number. Strategies 6–10 exercise the dynamic-edge showcase agendas;
+for example, pass `strategy_number=9` to compare the agents on the reasoning
+tier ladder.
+
 ## Resolve an LLM profile
 
 Credentials remain environment-only. The checked-in defaults refer to:

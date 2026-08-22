@@ -23,6 +23,20 @@ class DataValidationError(ValueError):
 
 
 SUPPORTED_VALIDATORS = {"integer", "numeric", "boolean", "normalized_text"}
+SUPPORTED_PROBLEM_BANK_SCHEMAS = {"1.0", "2.0"}
+SUPPORTED_AGENDA_SCHEMAS = {"1.0", "3.0"}
+SUPPORTED_TABLE_SCHEMAS = {"1.0"}
+SUPPORTED_DIFFICULTIES = {"trivial", "easy", "medium", "hard", "very_hard"}
+SUPPORTED_GUESSABILITY = {"low", "medium", "high"}
+SUPPORTED_REASONING_PROFILES = {
+    "cheap_capture",
+    "cheap_or_low",
+    "knowledge_or_high",
+    "legacy",
+    "reasoning_sensitive_low",
+    "reasoning_sensitive_medium",
+    "reasoning_sensitive_high",
+}
 SUPPORTED_NORMALIZATIONS = {
     "trim",
     "unicode_nfkc",
@@ -38,6 +52,32 @@ SUPPORTED_ROUND_ROLES = {
 }
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_unique_mapping(
+    loader: _UniqueKeyLoader,
+    node: yaml.MappingNode,
+    deep: bool = False,
+) -> dict[Any, Any]:
+    mapping: dict[Any, Any] = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise DataValidationError(
+                f"duplicate YAML key {key!r} at line {key_node.start_mark.line + 1}"
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
+
+
 def _read_bytes(path: str | Path) -> tuple[Path, bytes]:
     resolved = Path(path).resolve()
     try:
@@ -48,6 +88,28 @@ def _read_bytes(path: str | Path) -> tuple[Path, bytes]:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _combined_sha256(source_sha256s: dict[str, str]) -> str:
+    digest = hashlib.sha256()
+    for name, source_digest in sorted(source_sha256s.items()):
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(source_digest.encode("ascii"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _strict_json_loads(data: bytes) -> Any:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise DataValidationError(f"duplicate JSON key {key!r}")
+            result[key] = value
+        return result
+
+    return json.loads(data, object_pairs_hook=unique_object)
 
 
 def _require_mapping(value: Any, context: str) -> dict[str, Any]:
@@ -77,6 +139,9 @@ def _validate_validator(problem_id: str, validator: Any) -> None:
             raise DataValidationError(f"{problem_id}: numeric validator needs a numeric value")
         if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or tolerance < 0:
             raise DataValidationError(f"{problem_id}: numeric validator needs a nonnegative abs_tolerance")
+        allow_fraction = item.get("allow_fraction")
+        if allow_fraction is not None and not isinstance(allow_fraction, bool):
+            raise DataValidationError(f"{problem_id}: allow_fraction must be boolean")
     elif kind == "boolean":
         if not isinstance(item.get("value"), bool):
             raise DataValidationError(f"{problem_id}: boolean validator needs a boolean value")
@@ -95,11 +160,13 @@ def _validate_validator(problem_id: str, validator: Any) -> None:
 def load_problem_bank(path: str | Path) -> ProblemBank:
     resolved, data = _read_bytes(path)
     try:
-        document = _require_mapping(json.loads(data), "problem bank")
+        document = _require_mapping(_strict_json_loads(data), "problem bank")
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise DataValidationError(f"invalid problem-bank JSON: {exc}") from exc
 
     schema_version = _require_nonempty_string(document.get("schema_version"), "schema_version")
+    if schema_version not in SUPPORTED_PROBLEM_BANK_SCHEMAS:
+        raise DataValidationError(f"unsupported problem-bank schema {schema_version!r}")
     name = _require_nonempty_string(document.get("name"), "name")
     raw_problems = document.get("problems")
     if not isinstance(raw_problems, list) or not raw_problems:
@@ -111,35 +178,152 @@ def load_problem_bank(path: str | Path) -> ProblemBank:
         problem_id = _require_nonempty_string(problem.get("id"), f"problems[{index}].id")
         if problem_id in problems:
             raise DataValidationError(f"duplicate problem id: {problem_id}")
-        _require_nonempty_string(problem.get("category"), f"{problem_id}.category")
+        category = _require_nonempty_string(problem.get("category"), f"{problem_id}.category")
+        subcategory = problem.get("subcategory")
+        if subcategory is not None:
+            _require_nonempty_string(subcategory, f"{problem_id}.subcategory")
         _require_nonempty_string(problem.get("prompt_markdown"), f"{problem_id}.prompt_markdown")
         answer = _require_mapping(problem.get("answer"), f"{problem_id}.answer")
+        _require_nonempty_string(answer.get("display"), f"{problem_id}.answer.display")
         _validate_validator(problem_id, answer.get("validator"))
         dealer_meta = _require_mapping(problem.get("dealer_meta"), f"{problem_id}.dealer_meta")
-        _require_nonempty_string(dealer_meta.get("difficulty"), f"{problem_id}.dealer_meta.difficulty")
-        _require_nonempty_string(dealer_meta.get("guessability"), f"{problem_id}.dealer_meta.guessability")
+        difficulty = _require_nonempty_string(
+            dealer_meta.get("difficulty"), f"{problem_id}.dealer_meta.difficulty"
+        )
+        if difficulty not in SUPPORTED_DIFFICULTIES:
+            raise DataValidationError(f"{problem_id}: invalid difficulty {difficulty!r}")
+        guessability = _require_nonempty_string(
+            dealer_meta.get("guessability"), f"{problem_id}.dealer_meta.guessability"
+        )
+        if guessability not in SUPPORTED_GUESSABILITY:
+            raise DataValidationError(f"{problem_id}: invalid guessability {guessability!r}")
+        if schema_version == "2.0":
+            if category not in {
+                "algorithms",
+                "computer_science",
+                "general_quantitative_reasoning",
+                "logic",
+                "math",
+                "physics",
+                "probability",
+            }:
+                raise DataValidationError(f"{problem_id}: invalid V2 category {category!r}")
+            profile = _require_nonempty_string(
+                dealer_meta.get("reasoning_profile"),
+                f"{problem_id}.dealer_meta.reasoning_profile",
+            )
+            if profile not in SUPPORTED_REASONING_PROFILES - {"legacy"}:
+                raise DataValidationError(f"{problem_id}: invalid reasoning_profile {profile!r}")
+            raw_tier = _require_nonempty_string(
+                dealer_meta.get("suggested_reasoning_tier"),
+                f"{problem_id}.dealer_meta.suggested_reasoning_tier",
+            )
+            try:
+                ReasoningTier(raw_tier)
+            except ValueError as exc:
+                raise DataValidationError(
+                    f"{problem_id}: invalid suggested_reasoning_tier {raw_tier!r}"
+                ) from exc
+            tags = dealer_meta.get("tags")
+            if not isinstance(tags, list) or not tags or not all(
+                isinstance(value, str) and value.strip() for value in tags
+            ):
+                raise DataValidationError(f"{problem_id}: tags must be non-empty strings")
         problems[problem_id] = problem
 
-    return ProblemBank(schema_version, name, problems, _sha256(data), resolved)
+    source_sha256 = _sha256(data)
+    source_name = resolved.name
+    return ProblemBank(
+        schema_version,
+        name,
+        problems,
+        source_sha256,
+        resolved,
+        (resolved,),
+        {source_name: source_sha256},
+        {source_name: schema_version},
+        {problem_id: source_name for problem_id in problems},
+    )
+
+
+def load_problem_banks(paths: list[str | Path] | tuple[str | Path, ...]) -> ProblemBank:
+    if not paths:
+        raise DataValidationError("at least one problem bank is required")
+    sources = [load_problem_bank(path) for path in paths]
+    source_names = [source.path.name for source in sources]
+    if len(set(source_names)) != len(source_names):
+        raise DataValidationError("problem-bank filenames must be unique")
+    if len(sources) == 1:
+        return sources[0]
+
+    problems: dict[str, dict[str, Any]] = {}
+    source_by_problem_id: dict[str, str] = {}
+    for source in sources:
+        for problem_id, problem in source.problems.items():
+            if problem_id in problems:
+                raise DataValidationError(f"duplicate problem id across banks: {problem_id}")
+            problems[problem_id] = problem
+            source_by_problem_id[problem_id] = source.path.name
+
+    ordered_sources = tuple(sorted((source.path for source in sources), key=lambda path: path.name))
+    sources_by_name = {source.path.name: source for source in sources}
+    source_sha256s = {
+        name: sources_by_name[name].sha256 for name in sorted(sources_by_name)
+    }
+    source_schema_versions = {
+        name: sources_by_name[name].schema_version for name in sorted(sources_by_name)
+    }
+    return ProblemBank(
+        "+".join(sorted(source.schema_version for source in sources)),
+        "+".join(sources_by_name[name].name for name in sorted(sources_by_name)),
+        problems,
+        _combined_sha256(source_sha256s),
+        ordered_sources[0],
+        ordered_sources,
+        source_sha256s,
+        source_schema_versions,
+        source_by_problem_id,
+    )
 
 
 def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
     resolved, data = _read_bytes(path)
     try:
-        document = _require_mapping(yaml.safe_load(data), "agenda document")
+        document = _require_mapping(
+            yaml.load(data, Loader=_UniqueKeyLoader),
+            "agenda document",
+        )
     except (yaml.YAMLError, UnicodeDecodeError) as exc:
         raise DataValidationError(f"invalid agenda YAML: {exc}") from exc
 
     schema_version = _require_nonempty_string(document.get("schema_version"), "schema_version")
-    if schema_version != bank.schema_version:
-        raise DataValidationError(
-            f"agenda schema {schema_version!r} does not match problem-bank schema {bank.schema_version!r}"
-        )
-    declared_bank = _require_nonempty_string(document.get("problem_bank"), "problem_bank")
-    if declared_bank != bank.path.name:
-        raise DataValidationError(
-            f"agenda expects problem bank {declared_bank!r}, loaded {bank.path.name!r}"
-        )
+    if schema_version not in SUPPORTED_AGENDA_SCHEMAS:
+        raise DataValidationError(f"unsupported agenda schema {schema_version!r}")
+    loaded_source_names = set(bank.source_sha256s) or {bank.path.name}
+    source_labels_by_file: dict[str, str] = {}
+    if schema_version == "1.0":
+        declared_bank = _require_nonempty_string(document.get("problem_bank"), "problem_bank")
+        if declared_bank not in loaded_source_names:
+            raise DataValidationError(
+                f"agenda expects problem bank {declared_bank!r}, loaded {sorted(loaded_source_names)!r}"
+            )
+    else:
+        raw_declared_banks = _require_mapping(document.get("problem_banks"), "problem_banks")
+        for label, filename in raw_declared_banks.items():
+            source_label = _require_nonempty_string(label, "problem_banks label")
+            source_filename = _require_nonempty_string(
+                filename, f"problem_banks.{source_label}"
+            )
+            if source_filename in source_labels_by_file:
+                raise DataValidationError(
+                    f"agenda declares problem bank {source_filename!r} more than once"
+                )
+            source_labels_by_file[source_filename] = source_label
+        missing_banks = set(source_labels_by_file) - loaded_source_names
+        if missing_banks:
+            raise DataValidationError(
+                f"agenda problem banks are not loaded: {sorted(missing_banks)!r}"
+            )
     raw_agendas = document.get("agendas")
     if not isinstance(raw_agendas, list) or not raw_agendas:
         raise DataValidationError("agendas must be a non-empty list")
@@ -177,6 +361,18 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
             if problem_id not in bank.problems:
                 raise DataValidationError(f"agenda {strategy}: unknown problem_id {problem_id!r}")
             problem = bank.problems[problem_id]
+            source_bank = round_item.get("source_bank")
+            if schema_version == "3.0":
+                source_bank = _require_nonempty_string(source_bank, "source_bank")
+                actual_source_file = bank.source_by_problem_id[problem_id]
+                expected_source_bank = source_labels_by_file.get(actual_source_file)
+                if source_bank != expected_source_bank:
+                    raise DataValidationError(
+                        f"agenda {strategy}: source_bank mismatch for {problem_id}; "
+                        f"expected {expected_source_bank!r}"
+                    )
+            elif source_bank is not None:
+                source_bank = _require_nonempty_string(source_bank, "source_bank")
             category = _require_nonempty_string(round_item.get("category"), "category")
             difficulty = _require_nonempty_string(round_item.get("dealer_difficulty"), "dealer_difficulty")
             guessability = _require_nonempty_string(round_item.get("guessability"), "guessability")
@@ -194,11 +390,37 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
                 raise DataValidationError(
                     f"agenda {strategy}: invalid reference_reasoning_tier {raw_tier!r}"
                 ) from exc
+            canonical_tier = canonical_meta.get("suggested_reasoning_tier")
+            if schema_version == "3.0" and canonical_tier is not None and (
+                reference_tier is None or reference_tier.value != canonical_tier
+            ):
+                raise DataValidationError(
+                    f"agenda {strategy}: reference reasoning tier mismatch for {problem_id}"
+                )
             round_role = round_item.get("round_role")
             if round_role is not None and round_role not in SUPPORTED_ROUND_ROLES:
                 raise DataValidationError(
                     f"agenda {strategy}: invalid round_role {round_role!r}"
                 )
+            reasoning_profile = round_item.get("reasoning_profile")
+            if schema_version == "3.0":
+                reasoning_profile = _require_nonempty_string(
+                    reasoning_profile, "reasoning_profile"
+                )
+            elif reasoning_profile is not None:
+                reasoning_profile = _require_nonempty_string(
+                    reasoning_profile, "reasoning_profile"
+                )
+            if reasoning_profile is not None:
+                if reasoning_profile not in SUPPORTED_REASONING_PROFILES:
+                    raise DataValidationError(
+                        f"agenda {strategy}: invalid reasoning_profile {reasoning_profile!r}"
+                    )
+                canonical_profile = canonical_meta.get("reasoning_profile", "legacy")
+                if reasoning_profile != canonical_profile:
+                    raise DataValidationError(
+                        f"agenda {strategy}: reasoning profile mismatch for {problem_id}"
+                    )
             rounds.append(
                 AgendaRound(
                     expected_round,
@@ -208,6 +430,8 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
                     guessability,
                     reference_tier,
                     round_role,
+                    source_bank,
+                    reasoning_profile,
                 )
             )
         agendas[strategy] = Agenda(
@@ -219,7 +443,59 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
             tuple(dynamic_advantage),
         )
 
-    return AgendaCatalog(schema_version, agendas, _sha256(data), resolved)
+    source_sha256 = _sha256(data)
+    return AgendaCatalog(
+        schema_version,
+        agendas,
+        source_sha256,
+        resolved,
+        (resolved,),
+        {resolved.name: source_sha256},
+        {resolved.name: schema_version},
+    )
+
+
+def load_agenda_catalogs(
+    paths: list[str | Path] | tuple[str | Path, ...],
+    bank: ProblemBank,
+) -> AgendaCatalog:
+    if not paths:
+        raise DataValidationError("at least one agenda catalog is required")
+    catalogs = [load_agendas(path, bank) for path in paths]
+    source_names = [catalog.path.name for catalog in catalogs]
+    if len(set(source_names)) != len(source_names):
+        raise DataValidationError("agenda-catalog filenames must be unique")
+    if len(catalogs) == 1:
+        return catalogs[0]
+
+    agendas: dict[int, Agenda] = {}
+    for catalog in catalogs:
+        for strategy, agenda in catalog.agendas.items():
+            if strategy in agendas:
+                raise DataValidationError(
+                    f"duplicate strategy_number across agenda catalogs: {strategy}"
+                )
+            agendas[strategy] = agenda
+
+    ordered_sources = tuple(
+        sorted((catalog.path for catalog in catalogs), key=lambda path: path.name)
+    )
+    catalogs_by_name = {catalog.path.name: catalog for catalog in catalogs}
+    source_sha256s = {
+        name: catalogs_by_name[name].sha256 for name in sorted(catalogs_by_name)
+    }
+    source_schema_versions = {
+        name: catalogs_by_name[name].schema_version for name in sorted(catalogs_by_name)
+    }
+    return AgendaCatalog(
+        "+".join(sorted(catalog.schema_version for catalog in catalogs)),
+        agendas,
+        _combined_sha256(source_sha256s),
+        ordered_sources[0],
+        ordered_sources,
+        source_sha256s,
+        source_schema_versions,
+    )
 
 
 def load_table_modes(
@@ -228,16 +504,16 @@ def load_table_modes(
 ) -> TableCatalog:
     resolved, data = _read_bytes(path)
     try:
-        document = _require_mapping(yaml.safe_load(data), "table-mode document")
+        document = _require_mapping(
+            yaml.load(data, Loader=_UniqueKeyLoader),
+            "table-mode document",
+        )
     except (yaml.YAMLError, UnicodeDecodeError) as exc:
         raise DataValidationError(f"invalid table-mode YAML: {exc}") from exc
 
     schema_version = _require_nonempty_string(document.get("schema_version"), "schema_version")
-    if agenda_catalog and schema_version != agenda_catalog.schema_version:
-        raise DataValidationError(
-            f"table schema {schema_version!r} does not match agenda schema "
-            f"{agenda_catalog.schema_version!r}"
-        )
+    if schema_version not in SUPPORTED_TABLE_SCHEMAS:
+        raise DataValidationError(f"unsupported table schema {schema_version!r}")
 
     economy = _require_mapping(document.get("economy"), "economy")
     expected_economy = {

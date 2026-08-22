@@ -11,7 +11,13 @@ from .agent_config import (
     resolve_llm_runtime,
 )
 from .judge import judge_answer
-from .loaders import load_agendas, load_problem_bank, load_table_modes
+from .loaders import (
+    load_agenda_catalogs,
+    load_agendas,
+    load_problem_bank,
+    load_problem_banks,
+    load_table_modes,
+)
 from .models import GameConfig, Phase, ReasoningTier, TableCatalog, TableMode
 
 
@@ -37,9 +43,11 @@ __all__ = [
     "TableCatalog",
     "TableMode",
     "judge_answer",
+    "load_agenda_catalogs",
     "load_agendas",
     "load_agent_catalog",
     "load_problem_bank",
+    "load_problem_banks",
     "load_table_modes",
     "prepare_agent_context",
     "resolve_llm_runtime",

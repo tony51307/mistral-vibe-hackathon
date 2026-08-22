@@ -153,6 +153,7 @@ class DealerTests(unittest.TestCase):
             agenda_catalog=AGENDAS,
             strategy_number=5,
             seed=260822,
+            config=GameConfig(),
         )
         observed = []
         for agenda_round in AGENDAS.agendas[5].rounds:

@@ -10,7 +10,7 @@ from typing import Any, Mapping
 from .economy import affordable_tiers, highest_affordable_tier, split_pot
 from .event_log import JsonlEventLog
 from .judge import judge_answer
-from .loaders import load_agendas, load_problem_bank, public_problem
+from .loaders import load_agendas, load_problem_bank, load_table_modes, public_problem
 from .models import (
     AgendaCatalog,
     AgendaRound,
@@ -20,6 +20,7 @@ from .models import (
     PlayerState,
     ProblemBank,
     ReasoningTier,
+    TableCatalog,
     TIER_ORDER,
 )
 from .reasoning_provider import REASONING_MAPPING_VERSION, Router, Solver, reasoning_config
@@ -31,7 +32,9 @@ class InvalidPhase(RuntimeError):
 
 
 class SeasonComplete(RuntimeError):
-    pass
+    def __init__(self, message: str, result: Mapping[str, Any] | None = None):
+        super().__init__(message)
+        self.result = dict(result or {})
 
 
 class DealerGame:
@@ -54,12 +57,15 @@ class DealerGame:
         output_path: str | Path | None = None,
         model_identifier: str = "unconfigured",
         code_version: str = "working-tree",
+        table_mode_id: str = "custom",
+        table_config_sha256: str | None = None,
     ):
         if not player_ids or len(set(player_ids)) != len(player_ids):
             raise ValueError("player_ids must be a non-empty unique sequence")
         if strategy_number not in agenda_catalog.agendas:
             raise ValueError(f"unknown agenda strategy {strategy_number}")
-        self.config = config or GameConfig()
+        self.initial_agent_count = len(player_ids)
+        self.config = config or GameConfig.for_table_size(self.initial_agent_count)
         self.problem_bank = problem_bank
         self.agenda_catalog = agenda_catalog
         self.agenda = agenda_catalog.agendas[strategy_number]
@@ -68,6 +74,8 @@ class DealerGame:
         self.season_id = season_id
         self.model_identifier = model_identifier
         self.code_version = code_version
+        self.table_mode_id = table_mode_id
+        self.table_config_sha256 = table_config_sha256
         self.players = {
             agent_id: PlayerState(agent_id, self.config.starting_bankroll_cents)
             for agent_id in player_ids
@@ -86,6 +94,44 @@ class DealerGame:
         self._judge_results: dict[str, dict[str, Any]] = {}
         self._last_event: dict[str, Any] | None = None
         self._public_problem_payloads: dict[str, dict[str, Any]] = {}
+        self._season_result: dict[str, Any] | None = None
+
+    @classmethod
+    def from_table_mode(
+        cls,
+        *,
+        table_catalog: TableCatalog,
+        mode_id: str | None,
+        problem_bank: ProblemBank,
+        agenda_catalog: AgendaCatalog,
+        seed: int,
+        player_ids: list[str] | tuple[str, ...] | None = None,
+        strategy_number: int | None = None,
+        **kwargs: Any,
+    ) -> DealerGame:
+        mode = table_catalog.get(mode_id)
+        selected_ids = tuple(player_ids) if player_ids is not None else mode.default_player_ids()
+        if len(selected_ids) != mode.initial_agent_count:
+            raise ValueError(
+                f"table mode {mode.mode_id!r} requires {mode.initial_agent_count} player IDs"
+            )
+        if "config" in kwargs:
+            raise ValueError("table modes derive their GameConfig; use the direct constructor to override it")
+        return cls(
+            player_ids=selected_ids,
+            problem_bank=problem_bank,
+            agenda_catalog=agenda_catalog,
+            strategy_number=(
+                mode.recommended_agenda_strategy
+                if strategy_number is None
+                else strategy_number
+            ),
+            seed=seed,
+            config=GameConfig.for_table_size(mode.initial_agent_count),
+            table_mode_id=mode.mode_id,
+            table_config_sha256=table_catalog.sha256,
+            **kwargs,
+        )
 
     def _require_phase(self, expected: Phase) -> None:
         if self.phase != expected:
@@ -95,14 +141,45 @@ class DealerGame:
     def current_round_number(self) -> int | None:
         return self._agenda_round.round_number if self._agenda_round else None
 
+    @property
+    def season_result(self) -> dict[str, Any] | None:
+        return deepcopy(self._season_result)
+
+    def _build_season_result(self, status: str) -> dict[str, Any]:
+        positive = [
+            player for player in self.players.values() if player.bankroll_cents > 0
+        ]
+        if status == "HOUSE_WIN":
+            winner_ids: list[str] = []
+        elif status == "SOLE_SURVIVOR":
+            winner_ids = [positive[0].agent_id]
+        else:
+            high_score = max(player.bankroll_cents for player in self.players.values())
+            winner_ids = [
+                player.agent_id
+                for player in self.players.values()
+                if player.bankroll_cents == high_score
+            ]
+        return {
+            "status": status,
+            "winner_ids": winner_ids,
+            "rounds_completed": self.rotation.consumed,
+            "initial_agent_count": self.initial_agent_count,
+            "rollover_cents": self.rollover_cents,
+        }
+
     def reveal_category(self) -> dict[str, dict[str, Any]]:
         self._require_phase(Phase.CATEGORY_REVEAL)
+        if self._season_result is not None:
+            raise SeasonComplete("season is complete", self._season_result)
         if not any(player.bankroll_cents > 0 for player in self.players.values()):
-            raise SeasonComplete("all players are inactive")
+            self._season_result = self._build_season_result("HOUSE_WIN")
+            raise SeasonComplete("all players are inactive", self._season_result)
         try:
             self._agenda_round = self.rotation.next()
         except AgendaExhausted as exc:
-            raise SeasonComplete("agenda is complete") from exc
+            self._season_result = self._build_season_result("AGENDA_COMPLETE")
+            raise SeasonComplete("agenda is complete", self._season_result) from exc
         self._problem = self.problem_bank.problems[self._agenda_round.problem_id]
         self._round_players = {
             player.agent_id: PlayerRound(
@@ -128,6 +205,8 @@ class DealerGame:
                 "bankroll_cents": record.bankroll_before_cents,
                 "entry_fee_cents": self.config.entry_fee_cents,
                 "current_rollover_cents": self._rollover_in_cents,
+                "initial_agent_count": self.initial_agent_count,
+                "active_agent_count": len(self._round_players),
             }
             for agent_id, record in self._round_players.items()
         }
@@ -190,6 +269,8 @@ class DealerGame:
                     tier.value: self.config.reasoning_prices_cents[tier] for tier in TIER_ORDER
                 },
                 "public_messages": shared_messages,
+                "initial_agent_count": self.initial_agent_count,
+                "active_agent_count": len(self._round_players),
             }
         self._public_problem_payloads = deepcopy(payloads)
         self.phase = Phase.ROUTING
@@ -320,6 +401,15 @@ class DealerGame:
             self.rollover_chain += 1
         for agent_id, record in self._round_players.items():
             record.bankroll_after_round_cents = self.players[agent_id].bankroll_cents
+        positive_count = sum(
+            player.bankroll_cents > 0 for player in self.players.values()
+        )
+        if self.initial_agent_count >= 2 and positive_count == 0:
+            self._season_result = self._build_season_result("HOUSE_WIN")
+        elif self.initial_agent_count >= 2 and positive_count == 1:
+            self._season_result = self._build_season_result("SOLE_SURVIVOR")
+        elif self.rotation.remaining == 0:
+            self._season_result = self._build_season_result("AGENDA_COMPLETE")
         self.phase = Phase.ROUND_COMPLETE
         return {winner_id: share for winner_id in self._winner_ids}
 
@@ -332,6 +422,9 @@ class DealerGame:
             "season_id": self.season_id,
             "round": self._agenda_round.round_number,
             "strategy_number": self.agenda.strategy_number,
+            "table_mode_id": self.table_mode_id,
+            "initial_agent_count": self.initial_agent_count,
+            "table_config_sha256": self.table_config_sha256,
             "problem_id": self._agenda_round.problem_id,
             "category": self._agenda_round.category,
             "hidden_difficulty": self._agenda_round.dealer_difficulty,
@@ -349,6 +442,8 @@ class DealerGame:
             "reasoning_mapping_version": REASONING_MAPPING_VERSION,
             "run_seed": self.seed,
             "code_version": self.code_version,
+            "max_rollover_chain": self.config.max_rollover_chain,
+            "season_result": deepcopy(self._season_result),
             "agents": [
                 {
                     "agent_id": record.agent_id,
@@ -389,6 +484,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--agendas", required=True, type=Path)
     parser.add_argument("--strategy", required=True, type=int)
     parser.add_argument("--seed", required=True, type=int)
+    parser.add_argument("--tables", type=Path)
+    parser.add_argument("--table")
     parser.add_argument("--validate-only", action="store_true")
     return parser
 
@@ -399,6 +496,27 @@ def main() -> int:
     catalog = load_agendas(args.agendas, bank)
     if args.strategy not in catalog.agendas:
         raise SystemExit(f"unknown strategy {args.strategy}")
+    if bool(args.tables) != bool(args.table):
+        raise SystemExit("--tables and --table must be supplied together")
+    table_summary: dict[str, Any] = {}
+    if args.tables:
+        tables = load_table_modes(args.tables, catalog)
+        try:
+            mode = tables.get(args.table)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        table_config = GameConfig.for_table_size(mode.initial_agent_count)
+        table_summary = {
+            "table_mode_id": mode.mode_id,
+            "initial_agent_count": mode.initial_agent_count,
+            "dealer_contribution_cents": table_config.dealer_contribution_cents,
+            "normal_pot_cents": (
+                mode.initial_agent_count * table_config.entry_fee_cents
+                + table_config.dealer_contribution_cents
+            ),
+            "recommended_agenda_strategy": mode.recommended_agenda_strategy,
+            "table_config_sha256": tables.sha256,
+        }
     if not args.validate_only:
         raise SystemExit("provider execution is injected through DealerGame; pass --validate-only")
     agenda = catalog.agendas[args.strategy]
@@ -413,6 +531,7 @@ def main() -> int:
                 "problem_bank_sha256": bank.sha256,
                 "agenda_sha256": catalog.sha256,
                 "run_seed": args.seed,
+                **table_summary,
             },
             sort_keys=True,
         )

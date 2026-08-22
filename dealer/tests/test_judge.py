@@ -39,6 +39,14 @@ class JudgeTests(unittest.TestCase):
         self.assertTrue(judge_answer(yes, " YES ").correct)
         self.assertFalse(judge_answer(yes, "no").correct)
 
+    def test_boolean_accepts_explanatory_prefix_answer(self):
+        no = problem(
+            {"kind": "boolean", "value": False, "accepted_text": ["false", "no"]}
+        )
+        self.assertTrue(judge_answer(no, "No, because negative edges break the guarantee.").correct)
+        self.assertTrue(judge_answer(no, "Final answer: false.").correct)
+        self.assertFalse(judge_answer(no, "It is not guaranteed.").correct)
+
     def test_normalized_text_applies_declared_operations(self):
         item = problem(
             {
@@ -54,6 +62,46 @@ class JudgeTests(unittest.TestCase):
             }
         )
         self.assertTrue(judge_answer(item, " LIFO ").correct)
+        self.assertTrue(judge_answer(item, "Final answer: LIFO, because stacks pop last-in first-out.").correct)
+        self.assertFalse(judge_answer(item, "Stacks are last-in first-out.").correct)
+
+    def test_asymptotic_text_accepts_equivalent_notation(self):
+        item = problem(
+            {
+                "kind": "normalized_text",
+                "accepted": [
+                    "θ(n log n)",
+                    "theta(n log n)",
+                    "θ(nlogn)",
+                    "theta(nlogn)",
+                ],
+                "normalization": [
+                    "trim",
+                    "unicode_nfkc",
+                    "casefold",
+                    "remove_math_delimiters",
+                    "collapse_whitespace",
+                ],
+            }
+        )
+        self.assertTrue(judge_answer(item, "T(n) = Θ(n log n)").correct)
+        self.assertTrue(judge_answer(item, "O(n log n)").correct)
+
+    def test_asymptotic_text_accepts_assignment_prefixes(self):
+        item = problem(
+            {
+                "kind": "normalized_text",
+                "accepted": ["o(log n)", "o(logn)"],
+                "normalization": [
+                    "trim",
+                    "unicode_nfkc",
+                    "casefold",
+                    "remove_math_delimiters",
+                    "collapse_whitespace",
+                ],
+            }
+        )
+        self.assertTrue(judge_answer(item, "T(n) = O(log n)").correct)
 
     def test_malformed_or_zero_denominator_fraction_is_incorrect(self):
         item = problem({"kind": "numeric", "value": 0.5, "abs_tolerance": 1e-9})

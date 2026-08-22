@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import unittest
 from collections import Counter
+import unittest
 
 from economy import affordable_tiers, clamp_tier_to_bankroll
 from game import GameEngine
@@ -16,7 +16,11 @@ class GameTests(unittest.TestCase):
         self.assertEqual(len({problem.id for problem in problems}), 25)
 
     def test_answer_validation_accepts_equivalent_fractions(self) -> None:
-        problem = next(problem for problem in seeded_problem_sequence(7, 25) if problem.id == "probability_001")
+        problem = next(
+            problem
+            for problem in seeded_problem_sequence(7, 25)
+            if problem.id == "probability_001"
+        )
         self.assertTrue(is_correct(problem, "20/132"))
         self.assertTrue(is_correct(problem, "5/33"))
         self.assertFalse(is_correct(problem, "1/6"))
@@ -61,4 +65,3 @@ class GameTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

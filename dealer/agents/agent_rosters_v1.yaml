@@ -185,6 +185,14 @@ profiles:
     history_window_rounds: 25
     private_strategy_memory: true
 rosters:
+- id: social_3
+  name: Three-Agent Thinking Demo
+  initial_agent_count: 3
+  recommended_agenda_strategy: 5
+  seats:
+  - {seat: 1, agent_id: prodigy, profile_id: prodigy}
+  - {seat: 2, agent_id: professor, profile_id: professor}
+  - {seat: 3, agent_id: scientist, profile_id: scientist}
 - id: social_6
   name: Six-Agent Social Core
   initial_agent_count: 6

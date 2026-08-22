@@ -33,14 +33,14 @@ def all_keys(value):
 
 
 class AgentConfigurationTests(unittest.TestCase):
-    def test_profiles_and_every_six_to_ten_agent_roster_load(self):
+    def test_profiles_and_demo_agent_rosters_load(self):
         catalog = load_agent_catalog(AGENT_PATH)
         self.assertEqual(len(catalog.profiles), 10)
         self.assertEqual(
             {roster.initial_agent_count for roster in catalog.rosters.values()},
-            {6, 7, 8, 9, 10},
+            {3, 6, 7, 8, 9, 10},
         )
-        for count in range(6, 11):
+        for count in (3, 6, 7, 8, 9, 10):
             roster = catalog.get_roster(f"social_{count}")
             self.assertEqual(len(roster.seats), count)
             self.assertEqual(len(set(roster.player_ids())), count)
@@ -183,7 +183,10 @@ class AgentConfigurationTests(unittest.TestCase):
 
     def test_roster_loader_accepts_new_dynamic_edge_strategy_numbers(self):
         document = yaml.safe_load(AGENT_PATH.read_text(encoding="utf-8"))
-        document["rosters"][0]["recommended_agenda_strategy"] = 10
+        social_six = next(
+            roster for roster in document["rosters"] if roster["id"] == "social_6"
+        )
+        social_six["recommended_agenda_strategy"] = 10
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "agents.yaml"
             path.write_text(yaml.safe_dump(document), encoding="utf-8")

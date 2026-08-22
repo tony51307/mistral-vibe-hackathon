@@ -73,6 +73,33 @@ def test_openai_selection_does_not_call_mistral() -> None:
     ]
 
 
+def test_chat_json_preserves_dealer_options_and_telemetry() -> None:
+    with (
+        patch.dict(os.environ, {"OPENAI_API_KEY": "openai-test-key"}, clear=True),
+        patch(
+            "model_client.requests.post", return_value=_response(_openai_payload())
+        ) as post,
+    ):
+        data = MistralClient("openai").chat_json(
+            system="Return JSON.",
+            user="What is 6 * 7?",
+            strong=True,
+            reasoning_effort="high",
+            max_tokens=256,
+            retries=0,
+        )
+
+    assert data["answer"] == "42"
+    assert data["_model"] == "openai/gpt-5.6-luna"
+    assert data["_usage"] == {
+        "prompt_tokens": 12,
+        "completion_tokens": 7,
+        "total_tokens": 19,
+    }
+    assert post.call_args.kwargs["json"]["reasoning"] == {"effort": "high"}
+    assert post.call_args.kwargs["json"]["max_output_tokens"] == 256
+
+
 def test_mistral_selection_uses_mistral_api() -> None:
     payload = {
         "choices": [{"message": {"content": '{"answer":"42"}'}}],

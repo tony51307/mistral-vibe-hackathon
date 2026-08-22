@@ -2,17 +2,43 @@
 
 from __future__ import annotations
 
+import base64
 import html
+from pathlib import Path
+import sys
 
 import streamlit as st
 
-from game import GameConfig, GameState, new_game, play_round
+UI_ROOT = Path(__file__).resolve().parent
+if str(UI_ROOT) not in sys.path:
+    sys.path.insert(0, str(UI_ROOT))
+
+from game import (
+    GameConfig,
+    GameState,
+    agenda_labels,
+    new_game,
+    play_round,
+    roster_labels,
+)
 from mistral_client import MistralClient, ModelProvider
 
 st.set_page_config(page_title="Pay-to-Think Table", layout="wide")
 
-NAMES = ("Fast", "Always Think", "Dynamic", "Control")
-SEAT_EMOJI = {"Fast": "⚡", "Always Think": "🧠", "Dynamic": "🎯", "Control": "⚖️"}
+PORTRAIT_ROOT = UI_ROOT.parent / "cat_agent" / "portraits"
+
+SEAT_EMOJI = {
+    "The Prodigy": "⚡",
+    "The Professor": "🧠",
+    "The Scientist": "🎯",
+    "The Quant": "📈",
+    "The Bluffer": "🎭",
+    "The Honest Signaler": "⚖️",
+    "The Shark": "♠",
+    "The Monk": "◯",
+    "The Degenerate": "🎲",
+    "Darwin": "🧬",
+}
 
 PITCH = """
 Canonical V1 dealer economy: fixed entry fee X, dealer contribution H,
@@ -27,7 +53,7 @@ CSS = """
 
 .room {
   position: relative;
-  height: 640px;
+  height: 700px;
   background:
     radial-gradient(circle at 50% 45%, #3a2818 0%, #1a100a 75%);
   border-radius: 18px;
@@ -98,21 +124,41 @@ CSS = """
 }
 .seat {
   position: absolute;
-  width: 168px;
+  width: 148px;
   background: #140e0a;
   border: 2px solid #c9a227;
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   z-index: 3;
   box-shadow: 0 8px 18px rgba(0,0,0,.4);
 }
 .seat.winner { box-shadow: 0 0 0 3px #f5d76e, 0 8px 18px rgba(0,0,0,.4); }
 .seat.folded { opacity: .5; }
-.seat-top { left: 50%; top: 10px; transform: translateX(-50%); }
-.seat-bottom { left: 50%; bottom: 10px; transform: translateX(-50%); }
-.seat-left { left: 14px; top: 58%; transform: translateY(-50%); }
-.seat-right { right: 14px; top: 58%; transform: translateY(-50%); }
-.seat-name { font-weight: 700; font-size: 15px; }
+.seat-pos {
+  left: var(--seat-x);
+  top: var(--seat-y);
+  transform: translate(-50%, -50%);
+}
+.seat-head {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 7px;
+  align-items: center;
+}
+.seat-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #f5d76e;
+}
+.seat-name { font-weight: 700; font-size: 13px; line-height: 1.1; }
+.seat-role {
+  margin-top: 3px;
+  color: #f5d76e;
+  font-size: 11px;
+  font-weight: 800;
+}
 .seat-stack { color: #b7e4c7; font-size: 12px; margin: 3px 0 6px; }
 .seat-action {
   display: inline-block;
@@ -126,10 +172,20 @@ CSS = """
 .seat-ans {
   margin-top: 8px;
   font-family: 'Libre Baskerville', serif;
-  font-size: 18px;
+  font-size: 16px;
 }
 .seat-think { font-size: 11px; color: #ddd; margin-top: 4px; }
-.dealer-key { margin-top: 8px; font-size: 11px; color: #d8c27a; }
+.dealer-answer {
+  margin-top: 10px;
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1.25;
+  color: #050505;
+  background: #ffe08a;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
 .rail {
   background: #1b140c;
   border: 1px solid #6b4f1d;
@@ -140,7 +196,7 @@ CSS = """
 }
 .rail h3 {
   margin: 0 0 6px;
-  font-size: 11px;
+  font-size: 17px;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: #f5d76e;
@@ -151,6 +207,42 @@ CSS = """
 .hole .tag { font-size: 10px; color: #c9c0a8; }
 .tag.ok { color: #7dcea0; }
 .tag.no { color: #f5a3a3; }
+.talk-log {
+  background: #18130f;
+  border: 1px solid #6b4f1d;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #f4efe4;
+}
+.talk-log h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #f5d76e;
+}
+.talk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px;
+}
+.talk-item {
+  background: #251c13;
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 68px;
+}
+.talk-who {
+  font-size: 11px;
+  font-weight: 800;
+  color: #f5d76e;
+  margin-bottom: 4px;
+}
+.talk-msg {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #f4efe4;
+}
 </style>
 """
 
@@ -159,6 +251,7 @@ def init_state(config: GameConfig) -> None:
     st.session_state.game = new_game(config)
     st.session_state.client = MistralClient(config.model_provider)
     st.session_state.last = None
+    st.session_state.round_error = None
 
 
 def current_game() -> GameState:
@@ -166,13 +259,20 @@ def current_game() -> GameState:
 
 
 def run_one() -> None:
-    st.session_state.last = play_round(current_game(), st.session_state.client)
+    try:
+        st.session_state.last = play_round(current_game(), st.session_state.client)
+        st.session_state.round_error = None
+    except Exception as exc:
+        st.session_state.round_error = str(exc)
+        st.session_state.last = st.session_state.get("last")
 
 
 def run_all() -> None:
     g = current_game()
     while not g.finished:
-        st.session_state.last = play_round(g, st.session_state.client)
+        run_one()
+        if st.session_state.get("round_error"):
+            break
 
 
 def main() -> None:  # noqa: PLR0914, PLR0915
@@ -185,20 +285,45 @@ def main() -> None:  # noqa: PLR0914, PLR0915
 
     with st.sidebar:
         st.header("House rules")
-        start = st.number_input("Starting stack S", 20, 500, 80, 10)
-        fee = st.number_input("Entry fee X", 1, 20, 10, 1)
-        dealer_h = st.number_input("Dealer contribution H", 1, 50, 12, 1)
-        rounds = st.number_input("Season rounds", 5, 25, 25, 1)
+        current = current_game()
+        rosters = roster_labels()
+        roster = st.selectbox(
+            "Agent roster",
+            options=list(rosters),
+            index=list(rosters).index(current.config.agent_roster),
+            format_func=lambda value: rosters[value],
+        )
+        start = st.number_input(
+            "Starting stack S", value=current.config.start_bankroll, disabled=True
+        )
+        fee = st.number_input(
+            "Entry fee X", value=current.config.entrance_fee, disabled=True
+        )
+        dealer_h = st.number_input(
+            "Dealer contribution H",
+            value=current.config.dealer_contribution,
+            disabled=True,
+        )
+        rounds = st.number_input(
+            "Season rounds", value=current.config.n_rounds, disabled=True
+        )
+        agendas = agenda_labels()
+        agenda_options = list(agendas)
         strategy = st.selectbox(
             "Dealer agenda",
-            options=[1, 2, 3, 4, 5],
-            index=2,
-            format_func=lambda value: f"Strategy {value}",
+            options=agenda_options,
+            index=agenda_options.index(current.config.strategy_number),
+            format_func=lambda value: agendas[value],
         )
         seed = st.number_input("Run seed", 1, 999999, 260822, 1)
+        bluffing = st.toggle("Enable bluffing", value=current.config.enable_bluffing)
+        current_mode = (
+            current.config.model_provider if current.config.use_live_api else "offline"
+        )
         model_mode = st.selectbox(
             "Model backend",
             options=("offline", "mistral", "openai"),
+            index=("offline", "mistral", "openai").index(current_mode),
             format_func=str.title,
         )
         live = model_mode != "offline"
@@ -211,17 +336,19 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         if live and not client.available:
             key = "MISTRAL_API_KEY" if model_provider == "mistral" else "OPENAI_API_KEY"
             st.warning(f"No {key}. Seeded chips still play.")
-        if st.button("New table", use_container_width=True):
+        if st.button("New table", width="stretch"):
             init_state(
                 GameConfig(
                     start_bankroll=int(start),
                     entrance_fee=int(fee),
                     dealer_contribution=int(dealer_h),
+                    agent_roster=roster,
                     n_rounds=int(rounds),
                     strategy_number=int(strategy),
                     seed=int(seed),
                     use_live_api=live,
                     model_provider=model_provider,
+                    enable_bluffing=bluffing,
                 )
             )
             st.rerun()
@@ -243,14 +370,29 @@ def main() -> None:  # noqa: PLR0914, PLR0915
         run_all()
 
     last = st.session_state.get("last")
-    if not (last and last.get("round")) and not game.finished:
+    if st.session_state.get("round_error"):
+        st.error(st.session_state.round_error)
+    if last is None and not game.finished and not st.session_state.get("round_error"):
         run_one()
         last = st.session_state.last
         st.rerun()
 
-    table, rail = st.columns([2.2, 1])
-    with table:
-        _poker_table(last if last and last.get("round") else None, game)
+    _poker_table(last if last and last.get("round") else None, game)
+
+    talk, rail = st.columns([1.35, 1])
+    with talk:
+        if last and last.get("round") and game.config.enable_bluffing:
+            _bluff_log(last)
+        elif last and last.get("round"):
+            st.markdown(
+                '<div class="talk-log"><h3>Sequential bluffs</h3><p>Bluffing is off for this table.</p></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div class="talk-log"><h3>Table talk</h3><p>Waiting for category reveal.</p></div>',
+                unsafe_allow_html=True,
+            )
     with rail:
         if last and last.get("round"):
             _answer_rail(last)
@@ -265,6 +407,10 @@ def main() -> None:  # noqa: PLR0914, PLR0915
     _scoreboard(game)
     if game.finished:
         _final(game)
+
+
+def _names(game: GameState) -> tuple[str, ...]:
+    return tuple(game.display_names[agent_id] for agent_id in game.player_ids)
 
 
 def _player_view(record: dict, name: str, game: GameState) -> dict:
@@ -283,6 +429,7 @@ def _player_view(record: dict, name: str, game: GameState) -> dict:
     return {
         "name": name,
         "stack": game.bankrolls[name],
+        "thinking": _thinking_label_for_name(game, name),
         "entered": entry["decision"] == "ENTER",
         "action": last_action,
         "think": think,
@@ -291,8 +438,15 @@ def _player_view(record: dict, name: str, game: GameState) -> dict:
     }
 
 
+def _thinking_label_for_name(game: GameState, name: str) -> str:
+    for agent_id, display_name in game.display_names.items():
+        if display_name == name:
+            return game.thinking_labels.get(agent_id, "")
+    return ""
+
+
 def _seat_html(p: dict, pos: str) -> str:
-    klass = f"seat {pos}"
+    klass = "seat seat-pos"
     if p.get("winner"):
         klass += " winner"
     elif p.get("entered") is False:
@@ -303,8 +457,17 @@ def _seat_html(p: dict, pos: str) -> str:
     elif p.get("entered") and p.get("action") == "ANTE":
         action = "IN"
     ans = html.escape(str(p.get("answer") or "—"))
-    return f"""<div class="{klass}">
-      <div class="seat-name">{SEAT_EMOJI[p["name"]]} {html.escape(p["name"])}</div>
+    style = f"--seat-x:{pos[0]}%;--seat-y:{pos[1]}%;"
+    emoji = SEAT_EMOJI.get(p["name"], "●")
+    avatar = _seat_avatar(p)
+    return f"""<div class="{klass}" style="{style}">
+      <div class="seat-head">
+        {avatar}
+        <div>
+          <div class="seat-name">{emoji} {html.escape(p["name"])}</div>
+          <div class="seat-role">{html.escape(str(p.get("thinking") or ""))}</div>
+        </div>
+      </div>
       <div class="seat-stack">Stack {p["stack"]} · {"in" if p.get("entered") else "out"}</div>
       <div class="seat-action">{html.escape(str(action))}</div>
       <div class="seat-ans">{ans}</div>
@@ -312,17 +475,32 @@ def _seat_html(p: dict, pos: str) -> str:
     </div>"""
 
 
+def _seat_avatar(p: dict) -> str:
+    key = _portrait_key(str(p.get("thinking") or ""))
+    path = PORTRAIT_ROOT / f"{key}.png"
+    if not path.exists():
+        return '<div class="seat-avatar"></div>'
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f'<img class="seat-avatar" src="data:image/png;base64,{data}" alt="">'
+
+
+def _portrait_key(thinking: str) -> str:
+    match thinking:
+        case "Always thinker":
+            return "always_think"
+        case "No thinker":
+            return "fast"
+        case _:
+            return "dynamic"
+
+
 def _poker_table(record: dict | None, game: GameState) -> None:
-    positions = {
-        "Always Think": "seat-top",
-        "Fast": "seat-left",
-        "Dynamic": "seat-right",
-        "Control": "seat-bottom",
-    }
+    names = _names(game)
+    positions = _seat_positions(len(names))
     if record:
         seats = "".join(
-            _seat_html(_player_view(record, name, game), positions[name])
-            for name in NAMES
+            _seat_html(_player_view(record, name, game), positions[index])
+            for index, name in enumerate(names)
         )
         ann = record["announcement"]
         q = html.escape(record["problem"]["question"])
@@ -330,27 +508,28 @@ def _poker_table(record: dict | None, game: GameState) -> None:
         meta = f"Hand {record['round']} · {html.escape(ann['category'])}"
         if record.get("winners"):
             footer = (
-                f"Showdown · key {html.escape(str(record['problem']['answer']))} · "
+                f"Showdown · answer {html.escape(str(record['problem']['answer']))} · "
                 f"split {html.escape(str(record['payouts']))}"
             )
         else:
             footer = f"No winner · pot rolls {record.get('rollover', 0)}"
-        board = f'<div class="problem-meta">Board</div>{q}<div class="dealer-key">{footer}</div>'
+        board = f'<div class="problem-meta">Board</div>{q}<div class="dealer-answer">{footer}</div>'
     else:
         seats = "".join(
             _seat_html(
                 {
                     "name": name,
                     "stack": game.bankrolls[name],
+                    "thinking": _thinking_label_for_name(game, name),
                     "entered": None,
                     "action": "waiting",
                     "think": 0,
                     "answer": "",
                     "winner": False,
                 },
-                positions[name],
+                positions[index],
             )
-            for name in NAMES
+            for index, name in enumerate(names)
         )
         pot = game.prize_pool
         meta = "Waiting for the deal"
@@ -373,10 +552,29 @@ def _poker_table(record: dict | None, game: GameState) -> None:
     )
 
 
+def _seat_positions(count: int) -> list[tuple[float, float]]:
+    if count <= 0:
+        return []
+    import math
+
+    center_x = 50
+    center_y = 51
+    radius_x = 36
+    radius_y = 36
+    return [
+        (
+            center_x + radius_x * math.cos(-math.pi / 2 + 2 * math.pi * index / count),
+            center_y + radius_y * math.sin(-math.pi / 2 + 2 * math.pi * index / count),
+        )
+        for index in range(count)
+    ]
+
+
 def _answer_rail(record: dict) -> None:
     official = html.escape(str(record["problem"]["answer"]))
     cards = []
-    for name in NAMES:
+    game = current_game()
+    for name in _names(game):
         answers = []
         for cycle in record.get("cycles") or []:
             for row in cycle["dealer"]:
@@ -394,7 +592,7 @@ def _answer_rail(record: dict) -> None:
         tag = "WIN" if name in record.get("winners", []) else ("hit" if ok else "miss")
         klass = "ok" if ok else "no"
         extra = ""
-        if name == "Dynamic":
+        if "Scientist" in name:
             trace = (last.get("dealer") or {}).get("trace") or {}
             if trace:
                 extra = (
@@ -403,12 +601,27 @@ def _answer_rail(record: dict) -> None:
                     f"{'PAY' if trace.get('pay_to_think') else 'KEEP'}</div>"
                 )
         cards.append(
-            f'<div class="hole"><div class="who">{SEAT_EMOJI[name]} {html.escape(name)}</div>'
+            f'<div class="hole"><div class="who">{SEAT_EMOJI.get(name, "●")} {html.escape(name)}</div>'
             f'<div class="ans">{html.escape(str(ans))}</div>'
             f'<div class="tag {klass}">{tag} · {last.get("think_credits", 0)}c</div>{extra}</div>'
         )
     st.markdown(
-        f'<div class="rail"><h3>Rail · key {official}</h3>{"".join(cards)}</div>',
+        f'<div class="rail"><h3>Rail · answer {official}</h3>{"".join(cards)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _bluff_log(record: dict) -> None:
+    items = []
+    for entry in record.get("phase1", {}).get("entries", []):
+        name = str(entry.get("agent") or "Agent")
+        message = str(entry.get("message") or "...")
+        items.append(
+            f'<div class="talk-item"><div class="talk-who">{SEAT_EMOJI.get(name, "●")} '
+            f'{html.escape(name)}</div><div class="talk-msg">{html.escape(message)}</div></div>'
+        )
+    st.markdown(
+        f'<div class="talk-log"><h3>Sequential bluffs</h3><div class="talk-grid">{"".join(items)}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -450,10 +663,11 @@ Deep `{trace.get("deep_answer") or "—"}` · changed {trace.get("changed_answer
 def _scoreboard(game: GameState) -> None:
     st.subheader("Chip counts")
     rows = []
-    for name in NAMES:
+    for name in _names(game):
         s = game.stats[name]
         rows.append({
             "seat": name,
+            "thinker type": _thinking_label_for_name(game, name),
             "stack": s["bankroll"],
             "hands": s["rounds_played"],
             "folds": s["rounds_declined"],
@@ -465,7 +679,7 @@ def _scoreboard(game: GameState) -> None:
             "accuracy": round(s["accuracy"], 2),
             "pot / credit": round(s["reward_per_credit"], 2),
         })
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    st.dataframe(rows, width="stretch", hide_index=True)
 
 
 def _final(game: GameState) -> None:

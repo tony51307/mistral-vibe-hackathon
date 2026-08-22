@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import os
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Any, Literal
 
 from dotenv import load_dotenv
@@ -47,24 +47,37 @@ class MistralBackend:
     def enabled(self) -> bool:
         return bool(self.api_key)
 
-    def complete(self, prompt: str, tier: str) -> ModelResult:
+    def complete(
+        self,
+        prompt: str,
+        tier: str,
+        *,
+        temperature: float = 0.2,
+        reasoning_effort: str | None = None,
+        max_tokens: int | None = None,
+    ) -> ModelResult:
         if not self.enabled:
             raise RuntimeError("MISTRAL_API_KEY is not configured")
 
         model = self.cheap_model if tier in {"none", "low"} else self.strong_model
         started = perf_counter()
+        request_payload: dict[str, Any] = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+            or _MISTRAL_MAX_TOKENS.get(tier, _MISTRAL_MAX_TOKENS["low"]),
+        }
+        if reasoning_effort is not None:
+            request_payload["reasoning_effort"] = reasoning_effort
+
         response = requests.post(
             f"{self.base_url}/chat/completions",
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.2,
-                "max_tokens": _MISTRAL_MAX_TOKENS.get(tier, _MISTRAL_MAX_TOKENS["low"]),
-            },
+            json=request_payload,
             timeout=45,
         )
         response.raise_for_status()
@@ -94,7 +107,16 @@ class OpenAIResponsesBackend:
     def enabled(self) -> bool:
         return bool(self.api_key)
 
-    def complete(self, prompt: str, tier: str) -> ModelResult:
+    def complete(
+        self,
+        prompt: str,
+        tier: str,
+        *,
+        temperature: float = 0.2,
+        reasoning_effort: str | None = None,
+        max_tokens: int | None = None,
+    ) -> ModelResult:
+        del temperature
         if not self.enabled:
             raise RuntimeError("OPENAI_API_KEY is not configured")
 
@@ -108,8 +130,9 @@ class OpenAIResponsesBackend:
             json={
                 "model": self.model,
                 "input": prompt,
-                "reasoning": {"effort": tier},
-                "max_output_tokens": _OPENAI_MAX_OUTPUT_TOKENS.get(
+                "reasoning": {"effort": reasoning_effort or tier},
+                "max_output_tokens": max_tokens
+                or _OPENAI_MAX_OUTPUT_TOKENS.get(
                     tier, _OPENAI_MAX_OUTPUT_TOKENS["low"]
                 ),
                 "store": False,
@@ -150,13 +173,27 @@ class MistralClient:
     def available(self) -> bool:
         return self.enabled
 
-    def complete(self, prompt: str, tier: str) -> ModelResult:
+    def complete(
+        self,
+        prompt: str,
+        tier: str,
+        *,
+        temperature: float = 0.2,
+        reasoning_effort: str | None = None,
+        max_tokens: int | None = None,
+    ) -> ModelResult:
         if not self.enabled:
             key = "MISTRAL_API_KEY" if self.provider == "mistral" else "OPENAI_API_KEY"
             raise ModelBackendError(
                 f"The selected {self.provider} backend is not configured; set {key}"
             )
-        return self._backend.complete(prompt, tier)
+        return self._backend.complete(
+            prompt,
+            tier,
+            temperature=temperature,
+            reasoning_effort=reasoning_effort,
+            max_tokens=max_tokens,
+        )
 
     def chat_json(
         self,
@@ -165,12 +202,46 @@ class MistralClient:
         user: str,
         strong: bool = False,
         temperature: float = 0.2,
+        reasoning_effort: str | None = None,
+        max_tokens: int | None = None,
         retries: int = 2,
     ) -> dict[str, Any]:
-        del temperature, retries
         tier = "high" if strong else "low"
-        result = self.complete(f"{system}\n\n{user}", tier)
-        return _parse_json(result.text)
+        current_reasoning_effort = reasoning_effort
+        last_error: Exception | None = None
+        for attempt in range(retries + 1):
+            try:
+                result = self.complete(
+                    f"{system}\n\n{user}",
+                    tier,
+                    temperature=temperature,
+                    reasoning_effort=current_reasoning_effort,
+                    max_tokens=max_tokens,
+                )
+                data = _parse_json(result.text)
+                data["_model"] = f"{result.provider}/{result.model}"
+                data["_usage"] = {
+                    "prompt_tokens": result.input_tokens,
+                    "completion_tokens": result.output_tokens,
+                    "total_tokens": (
+                        result.input_tokens + result.output_tokens
+                        if result.input_tokens is not None
+                        and result.output_tokens is not None
+                        else None
+                    ),
+                }
+                data["_latency_ms"] = result.latency_ms
+                return data
+            except Exception as exc:
+                last_error = exc
+                if current_reasoning_effort is not None and "reasoning_effort" in str(
+                    exc
+                ):
+                    current_reasoning_effort = None
+                    continue
+                if attempt < retries:
+                    sleep(0.4 * (attempt + 1))
+        raise ModelBackendError(f"{self.provider} call failed: {last_error}")
 
     @property
     def _backend(self) -> MistralBackend | OpenAIResponsesBackend:

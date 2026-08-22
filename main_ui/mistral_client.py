@@ -20,6 +20,7 @@ PERTURB_COST = 1
 DEEP_COST = 8
 DYNAMIC_COST = 5
 
+
 __all__ = [
     "CHEAP_COST",
     "DEEP_COST",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -34,4 +35,8 @@ class AgentRoundEvent:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def events_to_json(events: list[AgentRoundEvent]) -> str:
+    return json.dumps([event.to_dict() for event in events], indent=2)
 

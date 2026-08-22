@@ -12,10 +12,10 @@ from prompts import answer_prompt
 
 
 DIFFICULTY_ACCURACY: dict[str, dict[str, float]] = {
-    "easy": {"none": 0.82, "low": 0.88, "medium": 0.92, "high": 0.96, "xhigh": 0.98},
-    "medium": {"none": 0.48, "low": 0.58, "medium": 0.70, "high": 0.82, "xhigh": 0.88},
-    "hard": {"none": 0.22, "low": 0.32, "medium": 0.48, "high": 0.65, "xhigh": 0.74},
-    "very hard": {"none": 0.10, "low": 0.18, "medium": 0.30, "high": 0.46, "xhigh": 0.58},
+    "easy": {"none": 0.90, "low": 0.92, "medium": 0.95, "high": 0.97, "xhigh": 0.99},
+    "medium": {"none": 0.60, "low": 0.66, "medium": 0.76, "high": 0.85, "xhigh": 0.90},
+    "hard": {"none": 0.32, "low": 0.42, "medium": 0.56, "high": 0.70, "xhigh": 0.78},
+    "very hard": {"none": 0.16, "low": 0.24, "medium": 0.38, "high": 0.54, "xhigh": 0.64},
 }
 
 
@@ -48,7 +48,7 @@ class AgentTurn:
 
 class AgentPolicy:
     def public_message(self, state: AgentState, category: str) -> str:
-        msg = f"{category.title()} round. {state.name} is watching the pot."
+        msg = f"{category.title()} round. Watching the pot."
         return msg[:100]
 
     def choose_tier(
@@ -61,6 +61,9 @@ class AgentPolicy:
 
 
 class FastPolicy(AgentPolicy):
+    def public_message(self, state: AgentState, category: str) -> str:
+        return f"{category.title()} feels like a gut-check. Conserving bankroll.".strip()[:100]
+
     def choose_tier(
         self,
         state: AgentState,
@@ -71,28 +74,47 @@ class FastPolicy(AgentPolicy):
 
 
 class AlwaysThinkPolicy(AgentPolicy):
+    def public_message(self, state: AgentState, category: str) -> str:
+        return f"{category.title()} is worth serious compute. I am buying depth.".strip()[:100]
+
     def choose_tier(
         self,
         state: AgentState,
         bankroll_after_entry: float,
         context: RoutingContext,
     ) -> tuple[str, RoutingDecision | None]:
-        return clamp_tier_to_bankroll("xhigh", bankroll_after_entry), None
+        # "Always think" means consistently buying non-cheap reasoning, not
+        # necessarily the maximum tier every round. This keeps V1 economy
+        # healthy while preserving the high-compute baseline.
+        if context.pot >= 100 or context.round_number % 12 == 0:
+            target = "xhigh"
+        elif context.round_number % 5 in {1, 2, 3}:
+            target = "high"
+        else:
+            target = "medium"
+        return clamp_tier_to_bankroll(target, bankroll_after_entry), None
 
 
 class MediumControlPolicy(AgentPolicy):
+    def public_message(self, state: AgentState, category: str) -> str:
+        return f"{category.title()} round. Balanced spend, steady answer.".strip()[:100]
+
     def choose_tier(
         self,
         state: AgentState,
         bankroll_after_entry: float,
         context: RoutingContext,
     ) -> tuple[str, RoutingDecision | None]:
-        return clamp_tier_to_bankroll("medium", bankroll_after_entry), None
+        target = "medium" if context.round_number % 3 == 0 else "low"
+        return clamp_tier_to_bankroll(target, bankroll_after_entry), None
 
 
 class DynamicPolicy(AgentPolicy):
     def __init__(self, auto_thinking: AutoThinkingAdapter) -> None:
         self.auto_thinking = auto_thinking
+
+    def public_message(self, state: AgentState, category: str) -> str:
+        return f"{category.title()} signal first, then spend only if unstable.".strip()[:100]
 
     def choose_tier(
         self,
@@ -163,4 +185,3 @@ def _mock_wrong_answer(agent: AgentState, problem: Problem, round_number: int) -
     rng = random.Random(f"{agent.agent_id}:{problem.id}:{round_number}:wrong")
     choices = [answer for answer in WRONG_ANSWERS if answer not in problem.accepted_answers]
     return rng.choice(choices)
-

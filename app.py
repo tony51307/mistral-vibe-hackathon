@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from event_log import events_to_json
 from game import GameEngine, SeasonState
 from metrics import agent_scoreboard, bankroll_series, economy_metrics
 
@@ -114,7 +115,15 @@ else:
 st.subheader("Economy Health")
 st.json(economy_metrics(season))
 
+events = [event for result in season.history for event in result.events]
+if events:
+    st.download_button(
+        "Download event log JSON",
+        data=events_to_json(events),
+        file_name=f"{season.season_id}_events.json",
+        mime="application/json",
+    )
+
 series = bankroll_series(season)
 if series:
     st.line_chart(series, x="round", y="bankroll", color="agent")
-

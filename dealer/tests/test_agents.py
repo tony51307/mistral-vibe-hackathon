@@ -178,6 +178,15 @@ class AgentConfigurationTests(unittest.TestCase):
             with self.assertRaisesRegex(AgentConfigError, "unknown profile_id"):
                 load_agent_catalog(path)
 
+    def test_roster_loader_accepts_new_dynamic_edge_strategy_numbers(self):
+        document = yaml.safe_load(AGENT_PATH.read_text(encoding="utf-8"))
+        document["rosters"][0]["recommended_agenda_strategy"] = 10
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "agents.yaml"
+            path.write_text(yaml.safe_dump(document), encoding="utf-8")
+            catalog = load_agent_catalog(path)
+        self.assertEqual(catalog.get_roster("social_6").recommended_agenda_strategy, 10)
+
 
 if __name__ == "__main__":
     unittest.main()

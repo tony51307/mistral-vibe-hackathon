@@ -30,6 +30,12 @@ SUPPORTED_NORMALIZATIONS = {
     "remove_math_delimiters",
     "collapse_whitespace",
 }
+SUPPORTED_ROUND_ROLES = {
+    "cheap_capture",
+    "decision_boundary",
+    "guessability_trap",
+    "reasoning_payoff",
+}
 
 
 def _read_bytes(path: str | Path) -> tuple[Path, bytes]:
@@ -148,6 +154,16 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
             raise DataValidationError(f"duplicate strategy_number: {strategy}")
         name = _require_nonempty_string(item.get("name"), f"agenda {strategy}.name")
         objective = _require_nonempty_string(item.get("objective"), f"agenda {strategy}.objective")
+        showcase_bias = item.get("showcase_bias", False)
+        if not isinstance(showcase_bias, bool):
+            raise DataValidationError(f"agenda {strategy}: showcase_bias must be boolean")
+        dynamic_advantage = item.get("dynamic_advantage", [])
+        if not isinstance(dynamic_advantage, list) or not all(
+            isinstance(value, str) and value.strip() for value in dynamic_advantage
+        ):
+            raise DataValidationError(
+                f"agenda {strategy}: dynamic_advantage must be a list of strings"
+            )
         raw_rounds = item.get("rounds")
         round_count = item.get("round_count")
         if not isinstance(raw_rounds, list) or round_count != len(raw_rounds) or round_count <= 0:
@@ -171,8 +187,37 @@ def load_agendas(path: str | Path, bank: ProblemBank) -> AgendaCatalog:
                 raise DataValidationError(f"agenda {strategy}: difficulty mismatch for {problem_id}")
             if guessability != canonical_meta["guessability"]:
                 raise DataValidationError(f"agenda {strategy}: guessability mismatch for {problem_id}")
-            rounds.append(AgendaRound(expected_round, problem_id, category, difficulty, guessability))
-        agendas[strategy] = Agenda(strategy, name, objective, tuple(rounds))
+            raw_tier = round_item.get("reference_reasoning_tier")
+            try:
+                reference_tier = ReasoningTier(raw_tier) if raw_tier is not None else None
+            except ValueError as exc:
+                raise DataValidationError(
+                    f"agenda {strategy}: invalid reference_reasoning_tier {raw_tier!r}"
+                ) from exc
+            round_role = round_item.get("round_role")
+            if round_role is not None and round_role not in SUPPORTED_ROUND_ROLES:
+                raise DataValidationError(
+                    f"agenda {strategy}: invalid round_role {round_role!r}"
+                )
+            rounds.append(
+                AgendaRound(
+                    expected_round,
+                    problem_id,
+                    category,
+                    difficulty,
+                    guessability,
+                    reference_tier,
+                    round_role,
+                )
+            )
+        agendas[strategy] = Agenda(
+            strategy,
+            name,
+            objective,
+            tuple(rounds),
+            showcase_bias,
+            tuple(dynamic_advantage),
+        )
 
     return AgendaCatalog(schema_version, agendas, _sha256(data), resolved)
 

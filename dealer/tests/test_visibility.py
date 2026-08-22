@@ -27,7 +27,7 @@ class VisibilityTests(unittest.TestCase):
             player_ids=["agent"],
             problem_bank=bank,
             agenda_catalog=agendas,
-            strategy_number=1,
+            strategy_number=6,
             seed=260822,
             config=GameConfig(season_rounds=1),
         )
@@ -50,6 +50,8 @@ class VisibilityTests(unittest.TestCase):
             "difficulty",
             "guessability",
             "suggested_reasoning_tier",
+            "reference_reasoning_tier",
+            "round_role",
             "future_rounds",
         }
         self.assertFalse(forbidden & set(all_keys(payload)))

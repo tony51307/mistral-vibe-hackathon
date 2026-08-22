@@ -498,6 +498,12 @@ class DealerGame:
             "category": self._agenda_round.category,
             "hidden_difficulty": self._agenda_round.dealer_difficulty,
             "hidden_guessability": self._agenda_round.guessability,
+            "hidden_reference_reasoning_tier": (
+                self._agenda_round.reference_reasoning_tier.value
+                if self._agenda_round.reference_reasoning_tier is not None
+                else None
+            ),
+            "hidden_round_role": self._agenda_round.round_role,
             "correct_answer": self._problem["answer"]["display"],
             "rollover_in_cents": self._rollover_in_cents,
             "entry_total_cents": self._entry_total_cents,

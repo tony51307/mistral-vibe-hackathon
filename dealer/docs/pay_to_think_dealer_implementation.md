@@ -407,15 +407,23 @@ Do not burn or refund the pot.
 
 # 6. Agenda strategies
 
-The YAML contains five fixed strategies:
+The YAML contains ten fixed strategies:
 
 1. `balanced_ramp` — gradual increase in difficulty with mixed categories.
 2. `bait_and_switch` — alternates easy and hard questions so category alone is not enough.
 3. `jackpot_pressure` — clusters hard questions to encourage rollover and pot-sensitive reasoning.
 4. `category_specialization` — category blocks to expose specialization and reputation effects.
 5. `seeded_mixed_benchmark` — reproducible mixed test for A/B comparisons.
+6. `adaptive_sawtooth` — alternates cheap captures and hard reasoning payoffs.
+7. `budget_then_battle` — rewards saving capital for a difficult late block.
+8. `guessability_traps` — separates answer priors from actual reasoning need.
+9. `reasoning_tier_ladder` — emphasizes low/medium decision boundaries.
+10. `repeated_five_step_ladders` — repeats difficulty ladders across categories.
 
 For scientific comparisons, use the same agenda and model seeds across policies whenever possible.
+
+Strategies 6–10 are intentionally showcase-biased. Pair them with seeded mixed
+or randomized agendas before making comparative or scientific claims.
 
 Do not reveal strategy number/name/objective to agents.
 

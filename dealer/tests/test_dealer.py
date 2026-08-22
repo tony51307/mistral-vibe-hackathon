@@ -22,11 +22,12 @@ def fixed_solver(answer):
 
 def one_round_game(player_ids=("a", "b"), **kwargs):
     config = kwargs.pop("config", GameConfig(season_rounds=1))
+    strategy_number = kwargs.pop("strategy_number", 1)
     return DealerGame(
         player_ids=player_ids,
         problem_bank=BANK,
         agenda_catalog=AGENDAS,
-        strategy_number=1,
+        strategy_number=strategy_number,
         seed=260822,
         config=config,
         **kwargs,
@@ -145,6 +146,21 @@ class DealerTests(unittest.TestCase):
             lines = output.read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(lines), 1)
             self.assertIn('"problem_bank_sha256"', lines[0])
+
+    def test_dynamic_edge_metadata_is_private_and_audited(self):
+        game = one_round_game(strategy_number=6)
+        category = game.reveal_category()["a"]
+        self.assertNotIn("reference_reasoning_tier", category)
+        self.assertNotIn("round_role", category)
+        game.collect_entries()
+        game.record_table_talk({})
+        payloads = game.reveal_problem()
+        self.assertNotIn("reference_reasoning_tier", payloads["a"])
+        self.assertNotIn("round_role", payloads["a"])
+        correct = BANK.problems["quant_001"]["answer"]["display"]
+        event = finish(game, payloads, {"a": correct, "b": "wrong"})
+        self.assertEqual(event["hidden_reference_reasoning_tier"], "none")
+        self.assertEqual(event["hidden_round_role"], "cheap_capture")
 
     def test_complete_25_round_agenda_rotates_in_registered_order(self):
         game = DealerGame(

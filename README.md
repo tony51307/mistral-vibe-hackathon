@@ -26,6 +26,13 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+Poker-table Streamlit UI lives in `main_ui/`:
+
+```bash
+pip install -r main_ui/requirements.txt
+streamlit run main_ui/app.py
+```
+
 The app runs in offline deterministic simulation mode by default.
 
 ## Optional Mistral API

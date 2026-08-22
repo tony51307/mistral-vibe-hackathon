@@ -25,8 +25,17 @@ pip install -r main_ui/requirements.txt
 streamlit run main_ui/app.py
 ```
 
-Seeded mode currently uses deterministic offline solvers against the canonical
-dealer problem bank.
+Seeded mode uses deterministic offline solvers against the canonical dealer
+problem bank. To enable live solving, export one or both provider keys and turn
+on `Live model API` in the sidebar:
+
+```bash
+export MISTRAL_API_KEY=...
+export OPENAI_API_KEY=...
+```
+
+Choose `Offline`, `Mistral`, or `OpenAI` with the sidebar's `Model backend`
+selector. The OpenAI option uses the Responses API with `gpt-5.6-luna`.
 
 ## Costs
 

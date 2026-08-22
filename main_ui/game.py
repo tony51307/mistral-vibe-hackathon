@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 import hashlib
 from pathlib import Path
 import sys
-from typing import Any, Mapping
+from typing import Any
 
 from metrics import attach_bankroll, empty_stats, summary, update_after_round
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEALER_ROOT = REPO_ROOT / "dealer"
@@ -21,7 +21,8 @@ if str(DEALER_ROOT) not in sys.path:
 from dealer.game.dealer_distributor import DealerGame, SeasonComplete
 from dealer.game.loaders import load_agendas, load_problem_bank
 from dealer.game.models import GameConfig as DealerConfig
-
+from dealer.game.reasoning_provider import Router, Solver
+from mistral_client import MistralClient, ModelProvider, extract_answer
 
 PLAYER_IDS = ("fast", "always_think", "dynamic", "control")
 DISPLAY_NAMES = {
@@ -39,13 +40,8 @@ POLICY_BY_ID = {
     "control": "balanced",
 }
 
-TIER_PRICE = {
-    "none": 1,
-    "low": 2,
-    "medium": 3,
-    "high": 5,
-    "xhigh": 9,
-}
+TIER_PRICE = {"none": 1, "low": 2, "medium": 3, "high": 5, "xhigh": 9}
+HIGH_STAKES_POT = 100
 
 
 @dataclass
@@ -57,6 +53,7 @@ class GameConfig:
     strategy_number: int = 3
     seed: int = 260822
     use_live_api: bool = False
+    model_provider: ModelProvider = "mistral"
 
 
 @dataclass
@@ -100,9 +97,7 @@ def new_game(config: GameConfig) -> GameState:
     return GameState(
         config=config,
         dealer=dealer,
-        bankrolls={
-            name: config.start_bankroll for name in DISPLAY_NAMES.values()
-        },
+        bankrolls={name: config.start_bankroll for name in DISPLAY_NAMES.values()},
         stats={
             name: empty_stats(name, config.start_bankroll)
             for name in DISPLAY_NAMES.values()
@@ -110,7 +105,7 @@ def new_game(config: GameConfig) -> GameState:
     )
 
 
-def play_round(state: GameState, client: Any) -> dict[str, Any]:
+def play_round(state: GameState, client: MistralClient) -> dict[str, Any]:
     if state.finished:
         return {"finished": True}
 
@@ -126,12 +121,16 @@ def play_round(state: GameState, client: Any) -> dict[str, Any]:
     display_messages = state.dealer.record_table_talk(messages)
     problem_payloads = state.dealer.reveal_problem()
     routers = {
-        agent_id: _router(agent_id, round_number)
-        for agent_id in problem_payloads
+        agent_id: _router(agent_id, round_number) for agent_id in problem_payloads
     }
     state.dealer.route_and_purchase(routers)
     solvers = {
-        agent_id: _solver(agent_id, state.dealer.problem_bank.problems[payload["problem_id"]])
+        agent_id: _solver(
+            agent_id,
+            state.dealer.problem_bank.problems[payload["problem_id"]],
+            client,
+            state.config.use_live_api,
+        )
         for agent_id, payload in problem_payloads.items()
     }
     state.dealer.solve(solvers)
@@ -157,15 +156,16 @@ def _table_talk(category_payloads: Mapping[str, Mapping[str, Any]]) -> dict[str,
     }
 
 
-def _router(agent_id: str, round_number: int):
+def _router(agent_id: str, round_number: int) -> Router:
     def route(payload: Mapping[str, Any]) -> dict[str, str]:
         affordable = set(payload["affordable_tiers"])
         pot = dollars(payload["pot_cents"])
-        category = str(payload["category"])
         if agent_id == "fast":
             tier = "none"
         elif agent_id == "always_think":
-            tier = "xhigh" if pot >= 100 or round_number % 8 == 0 else "high"
+            tier = (
+                "xhigh" if pot >= HIGH_STAKES_POT or round_number % 8 == 0 else "high"
+            )
         elif agent_id == "control":
             tier = "medium" if round_number % 3 == 0 else "low"
         else:
@@ -185,7 +185,7 @@ def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
     pot = dollars(payload["pot_cents"])
     score = _score(str(payload["problem_id"]), round_number, pot)
     disagreement = category in {"probability", "algorithms", "logic"} or score % 5 == 0
-    high_risk = pot >= 100 or score % 11 == 0
+    high_risk = pot >= HIGH_STAKES_POT or score % 11 == 0
     if high_risk and disagreement:
         return "xhigh" if score % 4 == 0 else "high"
     if disagreement:
@@ -195,9 +195,24 @@ def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
     return "low" if score % 4 else "none"
 
 
-def _solver(agent_id: str, problem: dict[str, Any]):
+def _solver(
+    agent_id: str, problem: dict[str, Any], client: MistralClient, use_live_api: bool
+) -> Solver:
     def solve(payload: Mapping[str, Any]) -> dict[str, Any]:
         tier = str(payload["reasoning_tier"])
+        if use_live_api and client.enabled:
+            result = client.complete(
+                _solver_prompt(problem["prompt_markdown"], tier), tier
+            )
+            return {
+                "answer": extract_answer(result.text),
+                "actual_input_tokens": result.input_tokens,
+                "actual_output_tokens": result.output_tokens,
+                "latency_ms": result.latency_ms,
+                "model": f"{result.provider}/{result.model}",
+                "api_reasoning_configuration": tier,
+            }
+
         answer = problem["answer"]["display"]
         if not _mock_correct(agent_id, str(problem["id"]), tier, problem):
             answer = _wrong_answer(problem)
@@ -210,14 +225,58 @@ def _solver(agent_id: str, problem: dict[str, Any]):
     return solve
 
 
-def _mock_correct(agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]) -> bool:
+def _solver_prompt(question: str, tier: str) -> str:
+    return f"""You are playing a short-answer reasoning game.
+Reasoning tier purchased: {tier}
+
+Return JSON only:
+{{"answer": "short final answer"}}
+
+Problem:
+{question}
+"""
+
+
+def _mock_correct(
+    agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]
+) -> bool:
     difficulty = problem["dealer_meta"]["difficulty"]
     probabilities = {
-        "trivial": {"none": 0.92, "low": 0.95, "medium": 0.97, "high": 0.99, "xhigh": 0.99},
-        "easy": {"none": 0.82, "low": 0.88, "medium": 0.93, "high": 0.97, "xhigh": 0.99},
-        "medium": {"none": 0.52, "low": 0.62, "medium": 0.76, "high": 0.86, "xhigh": 0.91},
-        "hard": {"none": 0.25, "low": 0.36, "medium": 0.54, "high": 0.70, "xhigh": 0.80},
-        "very_hard": {"none": 0.12, "low": 0.22, "medium": 0.36, "high": 0.54, "xhigh": 0.66},
+        "trivial": {
+            "none": 0.92,
+            "low": 0.95,
+            "medium": 0.97,
+            "high": 0.99,
+            "xhigh": 0.99,
+        },
+        "easy": {
+            "none": 0.82,
+            "low": 0.88,
+            "medium": 0.93,
+            "high": 0.97,
+            "xhigh": 0.99,
+        },
+        "medium": {
+            "none": 0.52,
+            "low": 0.62,
+            "medium": 0.76,
+            "high": 0.86,
+            "xhigh": 0.91,
+        },
+        "hard": {
+            "none": 0.25,
+            "low": 0.36,
+            "medium": 0.54,
+            "high": 0.70,
+            "xhigh": 0.80,
+        },
+        "very_hard": {
+            "none": 0.12,
+            "low": 0.22,
+            "medium": 0.36,
+            "high": 0.54,
+            "xhigh": 0.66,
+        },
     }
     probability = probabilities.get(difficulty, probabilities["medium"])[tier]
     if agent_id == "dynamic" and tier in {"high", "xhigh"}:
@@ -338,7 +397,9 @@ def _record_from_event(
         ],
         "winners": winners,
         "payouts": payouts,
-        "payout_each": dollars(event["pot_cents"] // max(1, len(winners))) if winners else 0,
+        "payout_each": dollars(event["pot_cents"] // max(1, len(winners)))
+        if winners
+        else 0,
         "prize": dollars(event["pot_cents"]),
         "rollover": dollars(event["rollover_out_cents"]),
         "bankrolls": {
@@ -349,7 +410,9 @@ def _record_from_event(
     }
 
 
-def _autothink_trace(agent_id: str, row: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
+def _autothink_trace(
+    agent_id: str, row: dict[str, Any], event: dict[str, Any]
+) -> dict[str, Any]:
     if agent_id != "dynamic":
         return {}
     tier = row["router_tier"]

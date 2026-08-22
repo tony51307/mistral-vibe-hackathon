@@ -7,8 +7,7 @@ import html
 import streamlit as st
 
 from game import GameConfig, GameState, new_game, play_round
-from mistral_client import MistralClient
-
+from mistral_client import MistralClient, ModelProvider
 
 st.set_page_config(page_title="Pay-to-Think Table", layout="wide")
 
@@ -158,7 +157,7 @@ CSS = """
 
 def init_state(config: GameConfig) -> None:
     st.session_state.game = new_game(config)
-    st.session_state.client = MistralClient()
+    st.session_state.client = MistralClient(config.model_provider)
     st.session_state.last = None
 
 
@@ -176,7 +175,7 @@ def run_all() -> None:
         st.session_state.last = play_round(g, st.session_state.client)
 
 
-def main() -> None:
+def main() -> None:  # noqa: PLR0914, PLR0915
     st.markdown(CSS, unsafe_allow_html=True)
     if "game" not in st.session_state:
         init_state(GameConfig())
@@ -197,12 +196,21 @@ def main() -> None:
             format_func=lambda value: f"Strategy {value}",
         )
         seed = st.number_input("Run seed", 1, 999999, 260822, 1)
-        live = st.toggle("Live Mistral API", value=False)
+        model_mode = st.selectbox(
+            "Model backend",
+            options=("offline", "mistral", "openai"),
+            format_func=str.title,
+        )
+        live = model_mode != "offline"
+        model_provider: ModelProvider = (
+            "openai" if model_mode == "openai" else "mistral"
+        )
         show_traces = st.toggle("Show dealer traces", value=True)
         st.caption("Reasoning prices Y: none $1, low $2, medium $3, high $5, xhigh $9.")
-        client = st.session_state.get("client") or MistralClient()
+        client = MistralClient(model_provider)
         if live and not client.available:
-            st.warning("No MISTRAL_API_KEY. Seeded chips still play.")
+            key = "MISTRAL_API_KEY" if model_provider == "mistral" else "OPENAI_API_KEY"
+            st.warning(f"No {key}. Seeded chips still play.")
         if st.button("New table", use_container_width=True):
             init_state(
                 GameConfig(
@@ -213,13 +221,17 @@ def main() -> None:
                     strategy_number=int(strategy),
                     seed=int(seed),
                     use_live_api=live,
+                    model_provider=model_provider,
                 )
             )
             st.rerun()
 
     game = current_game()
     a, b, c, d = st.columns(4)
-    a.metric("Hand", f"{min(game.round_index + (0 if game.finished else 1), game.config.n_rounds)} / {game.config.n_rounds}")
+    a.metric(
+        "Hand",
+        f"{min(game.round_index + (0 if game.finished else 1), game.config.n_rounds)} / {game.config.n_rounds}",
+    )
     b.metric("Rollover", game.prize_pool)
     c.metric("Entry X", game.config.entrance_fee)
     d.metric("Dealer H", game.config.dealer_contribution)
@@ -243,7 +255,10 @@ def main() -> None:
         if last and last.get("round"):
             _answer_rail(last)
         else:
-            st.markdown('<div class="rail"><h3>Dealer rail</h3><p>Waiting for a hand.</p></div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="rail"><h3>Dealer rail</h3><p>Waiting for a hand.</p></div>',
+                unsafe_allow_html=True,
+            )
     if show_traces and last and last.get("round"):
         _dealer_panel(last)
 
@@ -289,11 +304,11 @@ def _seat_html(p: dict, pos: str) -> str:
         action = "IN"
     ans = html.escape(str(p.get("answer") or "—"))
     return f"""<div class="{klass}">
-      <div class="seat-name">{SEAT_EMOJI[p['name']]} {html.escape(p['name'])}</div>
-      <div class="seat-stack">Stack {p['stack']} · {'in' if p.get('entered') else 'out'}</div>
+      <div class="seat-name">{SEAT_EMOJI[p["name"]]} {html.escape(p["name"])}</div>
+      <div class="seat-stack">Stack {p["stack"]} · {"in" if p.get("entered") else "out"}</div>
       <div class="seat-action">{html.escape(str(action))}</div>
       <div class="seat-ans">{ans}</div>
-      <div class="seat-think">{p.get('think', 0)} think credits</div>
+      <div class="seat-think">{p.get("think", 0)} think credits</div>
     </div>"""
 
 
@@ -306,7 +321,8 @@ def _poker_table(record: dict | None, game: GameState) -> None:
     }
     if record:
         seats = "".join(
-            _seat_html(_player_view(record, name, game), positions[name]) for name in NAMES
+            _seat_html(_player_view(record, name, game), positions[name])
+            for name in NAMES
         )
         ann = record["announcement"]
         q = html.escape(record["problem"]["question"])
@@ -323,7 +339,15 @@ def _poker_table(record: dict | None, game: GameState) -> None:
     else:
         seats = "".join(
             _seat_html(
-                {"name": name, "stack": game.bankrolls[name], "entered": None, "action": "waiting", "think": 0, "answer": "", "winner": False},
+                {
+                    "name": name,
+                    "stack": game.bankrolls[name],
+                    "entered": None,
+                    "action": "waiting",
+                    "think": 0,
+                    "answer": "",
+                    "winner": False,
+                },
                 positions[name],
             )
             for name in NAMES
@@ -375,8 +399,8 @@ def _answer_rail(record: dict) -> None:
             if trace:
                 extra = (
                     f'<div class="tag">{html.escape(str(trace.get("cheap_answer")))} → '
-                    f'{html.escape(str(trace.get("deep_answer") or ans))} · '
-                    f'{"PAY" if trace.get("pay_to_think") else "KEEP"}</div>'
+                    f"{html.escape(str(trace.get('deep_answer') or ans))} · "
+                    f"{'PAY' if trace.get('pay_to_think') else 'KEEP'}</div>"
                 )
         cards.append(
             f'<div class="hole"><div class="who">{SEAT_EMOJI[name]} {html.escape(name)}</div>'
@@ -393,17 +417,17 @@ def _dealer_panel(record: dict) -> None:
     with st.expander("Full dealer traces", expanded=False):
         event = record.get("dealer_event") or {}
         if event:
-            st.write(
-                {
-                    "hidden_difficulty": event.get("hidden_difficulty"),
-                    "hidden_guessability": event.get("hidden_guessability"),
-                    "problem_bank_sha256": event.get("problem_bank_sha256"),
-                    "agenda_sha256": event.get("agenda_sha256"),
-                    "reasoning_mapping_version": event.get("reasoning_mapping_version"),
-                }
-            )
+            st.write({
+                "hidden_difficulty": event.get("hidden_difficulty"),
+                "hidden_guessability": event.get("hidden_guessability"),
+                "problem_bank_sha256": event.get("problem_bank_sha256"),
+                "agenda_sha256": event.get("agenda_sha256"),
+                "reasoning_mapping_version": event.get("reasoning_mapping_version"),
+            })
         for cycle in record.get("cycles") or []:
-            st.markdown(f"**Routing and solving** — {cycle['public']['dealer_announcement']}")
+            st.markdown(
+                f"**Routing and solving** — {cycle['public']['dealer_announcement']}"
+            )
             for entry in cycle["dealer"]:
                 st.write(
                     f"{entry['agent']}: {entry.get('tier')} "
@@ -416,9 +440,9 @@ def _dealer_panel(record: dict) -> None:
 def _dynamic_trace(trace: dict) -> None:
     st.markdown(
         f"""
-Cheap `{trace.get('cheap_answer')}` · probes {', '.join(str(a) for a in (trace.get('perturbed_answers') or []))}  
-Stability **{trace.get('stability')}** · {'PAY TO THINK' if trace.get('pay_to_think') else 'KEEP CHEAP'}  
-Deep `{trace.get('deep_answer') or '—'}` · changed {trace.get('changed_answer')}
+Cheap `{trace.get("cheap_answer")}` · probes {", ".join(str(a) for a in (trace.get("perturbed_answers") or []))}
+Stability **{trace.get("stability")}** · {"PAY TO THINK" if trace.get("pay_to_think") else "KEEP CHEAP"}
+Deep `{trace.get("deep_answer") or "—"}` · changed {trace.get("changed_answer")}
         """
     )
 
@@ -428,21 +452,19 @@ def _scoreboard(game: GameState) -> None:
     rows = []
     for name in NAMES:
         s = game.stats[name]
-        rows.append(
-            {
-                "seat": name,
-                "stack": s["bankroll"],
-                "hands": s["rounds_played"],
-                "folds": s["rounds_declined"],
-                "showdown wins": s["correct"],
-                "misses": s["incorrect"],
-                "credits spent": s["credits_spent"],
-                "pots won": s["prize_won"],
-                "net": s["net_profit"],
-                "accuracy": round(s["accuracy"], 2),
-                "pot / credit": round(s["reward_per_credit"], 2),
-            }
-        )
+        rows.append({
+            "seat": name,
+            "stack": s["bankroll"],
+            "hands": s["rounds_played"],
+            "folds": s["rounds_declined"],
+            "showdown wins": s["correct"],
+            "misses": s["incorrect"],
+            "credits spent": s["credits_spent"],
+            "pots won": s["prize_won"],
+            "net": s["net_profit"],
+            "accuracy": round(s["accuracy"], 2),
+            "pot / credit": round(s["reward_per_credit"], 2),
+        })
     st.dataframe(rows, use_container_width=True, hide_index=True)
 
 

@@ -96,6 +96,8 @@ class AgendaRound:
     category: str
     dealer_difficulty: str
     guessability: str
+    reference_reasoning_tier: ReasoningTier | None = None
+    round_role: str | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,8 @@ class Agenda:
     name: str
     objective: str
     rounds: tuple[AgendaRound, ...]
+    showcase_bias: bool = False
+    dynamic_advantage: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

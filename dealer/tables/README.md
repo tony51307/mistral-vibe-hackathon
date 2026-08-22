@@ -70,6 +70,6 @@ game = DealerGame.from_table_mode(
 
 ## Add a custom table mode
 
-Copy one item in `table_modes_v1.yaml`, give it a unique `id`, and set `initial_agent_count` between 2 and 10. Choose an existing agenda strategy from 1 through 5 and document at least one use case.
+Copy one item in `table_modes_v1.yaml`, give it a unique `id`, and set `initial_agent_count` between 2 and 10. Choose an existing agenda strategy from 1 through 10 and document at least one use case. Strategies 6–10 are showcase-biased dynamic-edge stress tests, not unbiased defaults.
 
 Do not add an `H` override to a mode. The loader rejects changes to the frozen economy contract, and the dealer derives `H` from the initial count exactly once.

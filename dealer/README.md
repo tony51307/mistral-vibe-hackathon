@@ -16,7 +16,7 @@ game/
   models.py              typed state and configuration
   reasoning_provider.py  abstract router/solver adapter boundary
   rotation.py            fixed-agenda problem cursor
-data/                     canonical V1 bank and five agendas
+data/                     canonical V1 bank and ten agendas
 docs/                     source implementation guide
 agents/                   LLM/deterministic profiles and 6–10-seat rosters
 tables/                   2-to-10-agent economy instructions and presets
@@ -83,6 +83,20 @@ Each router is called with a public payload and returns `{"reasoning_tier": "med
 See [tables/README.md](tables/README.md) for the heads-up, baseline, demo, and tournament configurations. Table modes derive a fixed season contribution of `$3 × initial agents`; the direct `player_ids` constructor remains available for isolated tests and custom hosts.
 
 See [agents/README.md](agents/README.md) for LLM profile loading, environment-only Mistral configuration, bluff/listening policies, and the `social_6` through `social_10` rosters.
+
+## Agenda strategies
+
+Strategies 1–5 are the original baseline and mixed agendas. Strategies 6–10 are
+dynamic-edge showcases imported from the revision-2 design note:
+`adaptive_sawtooth`, `budget_then_battle`, `guessability_traps`,
+`reasoning_tier_ladder`, and `repeated_five_step_ladders`. Their reference
+reasoning tiers and round roles are validated dealer-only analysis metadata and
+are written only to the private event log.
+
+The dynamic-edge agendas are intentionally ordered to favor adaptive routing.
+Use them for demos and stress tests; pair them with seeded mixed/random agendas
+before making comparative or scientific claims. Select one with `--strategy 6`
+through `--strategy 10` while continuing to use the canonical agenda file.
 
 ## Invariants
 

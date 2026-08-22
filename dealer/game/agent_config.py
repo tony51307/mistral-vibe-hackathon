@@ -373,8 +373,10 @@ def load_agent_catalog(path: str | Path) -> AgentCatalog:
                 f"roster {roster_id}: initial_agent_count must be between 6 and 10"
             )
         strategy = item.get("recommended_agenda_strategy")
-        if isinstance(strategy, bool) or not isinstance(strategy, int) or not 1 <= strategy <= 5:
-            raise AgentConfigError(f"roster {roster_id}: agenda strategy must be 1 through 5")
+        if isinstance(strategy, bool) or not isinstance(strategy, int) or strategy <= 0:
+            raise AgentConfigError(
+                f"roster {roster_id}: agenda strategy must be a positive integer"
+            )
         raw_seats = item.get("seats")
         if not isinstance(raw_seats, list) or len(raw_seats) != count:
             raise AgentConfigError(f"roster {roster_id}: seat count does not match")

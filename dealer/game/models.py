@@ -65,13 +65,13 @@ class GameConfig:
 
     @classmethod
     def for_table_size(cls, initial_agent_count: int, **overrides: Any) -> GameConfig:
-        """Build the V1 economy once from the initial 2-to-8 seat count."""
+        """Build the V1 economy once from the initial 2-to-10 seat count."""
         if (
             isinstance(initial_agent_count, bool)
             or not isinstance(initial_agent_count, int)
-            or not 2 <= initial_agent_count <= 8
+            or not 2 <= initial_agent_count <= 10
         ):
-            raise ValueError("initial_agent_count must be between 2 and 8")
+            raise ValueError("initial_agent_count must be between 2 and 10")
         if "dealer_contribution_cents" in overrides:
             raise ValueError("dealer contribution is derived from the initial table size")
         return cls(

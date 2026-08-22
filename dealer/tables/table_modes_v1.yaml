@@ -2,7 +2,7 @@ schema_version: '1.0'
 default_mode: baseline
 economy:
   minimum_agents: 2
-  maximum_agents: 8
+  maximum_agents: 10
   starting_bankroll_cents: 8000
   entry_fee_cents: 1000
   dealer_contribution_per_initial_agent_cents: 300
@@ -47,3 +47,27 @@ table_modes:
   - stress testing
   - multi-agent dynamics
   - large jackpots
+- id: social_lab
+  name: Seven-Agent Social Lab
+  initial_agent_count: 7
+  recommended_agenda_strategy: 3
+  use_cases:
+  - reputation experiments
+  - bluffing comparisons
+  - odd-size payout tests
+- id: social_stress
+  name: Nine-Agent Social Stress
+  initial_agent_count: 9
+  recommended_agenda_strategy: 3
+  use_cases:
+  - large-table social influence
+  - opponent-model stress tests
+  - mixed intelligence baselines
+- id: ecology
+  name: Ten-Agent Intelligence Ecology
+  initial_agent_count: 10
+  recommended_agenda_strategy: 3
+  use_cases:
+  - full archetype roster
+  - strategy evolution
+  - maximum V1 table stress

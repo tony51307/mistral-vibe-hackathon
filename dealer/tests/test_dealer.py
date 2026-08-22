@@ -109,7 +109,7 @@ class DealerTests(unittest.TestCase):
     def test_router_retries_then_falls_back_deterministically(self):
         config = GameConfig(starting_bankroll_cents=1_500, season_rounds=1)
         game = one_round_game(player_ids=("a",), config=config)
-        payloads = play_to_reveal(game)
+        play_to_reveal(game)
         calls = []
 
         def overspending_router(payload):
@@ -127,7 +127,7 @@ class DealerTests(unittest.TestCase):
     def test_exact_entry_boundary_never_makes_bankroll_negative(self):
         config = GameConfig(starting_bankroll_cents=1_000, season_rounds=1)
         game = one_round_game(player_ids=("a",), config=config)
-        payloads = play_to_reveal(game)
+        play_to_reveal(game)
         game.route_and_purchase({"a": fixed_router("none")})
         record = game._round_players["a"]
         self.assertEqual(record.router_tier, "none")

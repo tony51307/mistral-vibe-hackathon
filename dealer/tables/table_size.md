@@ -1,5 +1,7 @@
 # Pay-to-Think Multi-Agent Economy — 2 to 8 Players
 
+> **9–10 player extension:** The agent-roster layer extends the supported table size to 10 without changing the mechanism below. For 9 and 10 initial agents, fixed season `H` is `$27` and `$30`, and the normal opening pots are `$117` and `$130`. All other invariants remain unchanged.
+
 ## 1. Design Goal
 
 The same game should work with anywhere from **2 to 8 autonomous agents** without changing the meaning of money or reasoning.

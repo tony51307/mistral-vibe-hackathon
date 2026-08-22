@@ -7,19 +7,18 @@ import html
 import streamlit as st
 
 from game import GameConfig, GameState, new_game, play_round
-from mistral_client import CHEAP_COST, DEEP_COST, DYNAMIC_COST, PERTURB_COST, MistralClient
-from problems import is_correct
+from mistral_client import MistralClient
 
 
 st.set_page_config(page_title="Pay-to-Think Table", layout="wide")
 
-NAMES = ("Fast", "Always Think", "Dynamic")
-SEAT_EMOJI = {"Fast": "⚡", "Always Think": "🧠", "Dynamic": "🎯"}
+NAMES = ("Fast", "Always Think", "Dynamic", "Control")
+SEAT_EMOJI = {"Fast": "⚡", "Always Think": "🧠", "Dynamic": "🎯", "Control": "⚖️"}
 
 PITCH = """
-Always thinking is expensive. Never thinking is cheap but brittle.
-Entrance fee is the same for everyone. THINK buys private reasoning.
-Winners split the pot. The **side rail** is the dealer’s hole-card view of every answer.
+Canonical V1 dealer economy: fixed entry fee X, dealer contribution H,
+and one private reasoning purchase Y. Difficulty and answer keys stay dealer-only.
+The **side rail** is the dealer’s audit view.
 """
 
 CSS = """
@@ -111,6 +110,7 @@ CSS = """
 .seat.winner { box-shadow: 0 0 0 3px #f5d76e, 0 8px 18px rgba(0,0,0,.4); }
 .seat.folded { opacity: .5; }
 .seat-top { left: 50%; top: 10px; transform: translateX(-50%); }
+.seat-bottom { left: 50%; bottom: 10px; transform: translateX(-50%); }
 .seat-left { left: 14px; top: 58%; transform: translateY(-50%); }
 .seat-right { right: 14px; top: 58%; transform: translateY(-50%); }
 .seat-name { font-weight: 700; font-size: 15px; }
@@ -186,15 +186,20 @@ def main() -> None:
 
     with st.sidebar:
         st.header("House rules")
-        start = st.number_input("Starting stack", 20, 500, 100, 10)
-        fee = st.number_input("Ante / entrance fee", 1, 20, 2, 1)
-        n_pert = st.slider("Perturbation probes", 3, 5, 4)
-        max_cycles = st.slider("Max streets (cycles)", 1, 5, 3)
+        start = st.number_input("Starting stack S", 20, 500, 80, 10)
+        fee = st.number_input("Entry fee X", 1, 20, 10, 1)
+        dealer_h = st.number_input("Dealer contribution H", 1, 50, 12, 1)
+        rounds = st.number_input("Season rounds", 5, 25, 25, 1)
+        strategy = st.selectbox(
+            "Dealer agenda",
+            options=[1, 2, 3, 4, 5],
+            index=2,
+            format_func=lambda value: f"Strategy {value}",
+        )
+        seed = st.number_input("Run seed", 1, 999999, 260822, 1)
         live = st.toggle("Live Mistral API", value=False)
         show_traces = st.toggle("Show dealer traces", value=True)
-        st.caption(
-            f"Think costs — Fast {CHEAP_COST}, Dynamic {DYNAMIC_COST}, Always Think {DEEP_COST}."
-        )
+        st.caption("Reasoning prices Y: none $1, low $2, medium $3, high $5, xhigh $9.")
         client = st.session_state.get("client") or MistralClient()
         if live and not client.available:
             st.warning("No MISTRAL_API_KEY. Seeded chips still play.")
@@ -203,8 +208,10 @@ def main() -> None:
                 GameConfig(
                     start_bankroll=int(start),
                     entrance_fee=int(fee),
-                    n_perturbations=int(n_pert),
-                    max_cycles=int(max_cycles),
+                    dealer_contribution=int(dealer_h),
+                    n_rounds=int(rounds),
+                    strategy_number=int(strategy),
+                    seed=int(seed),
                     use_live_api=live,
                 )
             )
@@ -214,8 +221,8 @@ def main() -> None:
     a, b, c, d = st.columns(4)
     a.metric("Hand", f"{min(game.round_index + (0 if game.finished else 1), game.config.n_rounds)} / {game.config.n_rounds}")
     b.metric("Rollover", game.prize_pool)
-    c.metric("Ante", game.config.entrance_fee)
-    d.metric("Model", "mistral-medium-3-5")
+    c.metric("Entry X", game.config.entrance_fee)
+    d.metric("Dealer H", game.config.dealer_contribution)
 
     x, y, _ = st.columns(3)
     if x.button("Deal next hand", type="primary", disabled=game.finished):
@@ -291,7 +298,12 @@ def _seat_html(p: dict, pos: str) -> str:
 
 
 def _poker_table(record: dict | None, game: GameState) -> None:
-    positions = {"Always Think": "seat-top", "Fast": "seat-left", "Dynamic": "seat-right"}
+    positions = {
+        "Always Think": "seat-top",
+        "Fast": "seat-left",
+        "Dynamic": "seat-right",
+        "Control": "seat-bottom",
+    }
     if record:
         seats = "".join(
             _seat_html(_player_view(record, name, game), positions[name]) for name in NAMES
@@ -299,7 +311,7 @@ def _poker_table(record: dict | None, game: GameState) -> None:
         ann = record["announcement"]
         q = html.escape(record["problem"]["question"])
         pot = record["prize"]
-        meta = f"Hand {record['round']} · {html.escape(ann['category'])} · {html.escape(ann['difficulty'])}"
+        meta = f"Hand {record['round']} · {html.escape(ann['category'])}"
         if record.get("winners"):
             footer = (
                 f"Showdown · key {html.escape(str(record['problem']['answer']))} · "
@@ -354,7 +366,7 @@ def _answer_rail(record: dict) -> None:
             continue
         last = next((r for r in reversed(answers) if r.get("answer")), answers[-1])
         ans = last.get("answer") or "—"
-        ok = bool(ans and ans != "—" and is_correct(ans, record["problem"]))
+        ok = bool(last.get("correct"))
         tag = "WIN" if name in record.get("winners", []) else ("hit" if ok else "miss")
         klass = "ok" if ok else "no"
         extra = ""
@@ -379,12 +391,23 @@ def _answer_rail(record: dict) -> None:
 
 def _dealer_panel(record: dict) -> None:
     with st.expander("Full dealer traces", expanded=False):
+        event = record.get("dealer_event") or {}
+        if event:
+            st.write(
+                {
+                    "hidden_difficulty": event.get("hidden_difficulty"),
+                    "hidden_guessability": event.get("hidden_guessability"),
+                    "problem_bank_sha256": event.get("problem_bank_sha256"),
+                    "agenda_sha256": event.get("agenda_sha256"),
+                    "reasoning_mapping_version": event.get("reasoning_mapping_version"),
+                }
+            )
         for cycle in record.get("cycles") or []:
-            st.markdown(f"**Street {cycle['public']['cycle']}** — {cycle['public']['dealer_announcement']}")
+            st.markdown(f"**Routing and solving** — {cycle['public']['dealer_announcement']}")
             for entry in cycle["dealer"]:
                 st.write(
-                    f"{entry['agent']}: {entry['action']} "
-                    f"(THINK {entry['think_credits']}) → `{entry['answer'] or '—'}`"
+                    f"{entry['agent']}: {entry.get('tier')} "
+                    f"(${entry['think_credits']} Y) → `{entry['answer'] or '—'}`"
                 )
                 if entry["agent"] == "Dynamic" and entry.get("dealer", {}).get("trace"):
                     _dynamic_trace(entry["dealer"]["trace"])

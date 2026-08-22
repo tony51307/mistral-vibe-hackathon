@@ -1,24 +1,19 @@
-# Pay-to-Think Math Bidding
+# Pay-to-Think Dealer Table
 
-Three Mistral-powered agents compete in a math bidding game. Each one spends
-**thinking credits** and must decide whether deeper reasoning is worth the pot.
+Four agents compete under the canonical V1 dealer economy from `dealer/`.
+Each agent pays the same entry fee `X`, buys exactly one private reasoning tier
+`Y`, and tries to win the dealer-funded pot.
 
 ## Idea
 
-- **Fast** never thinks (1 credit).
-- **Always Think** always buys deep reasoning (8 credits).
-- **Dynamic** runs a cheap first pass plus 3–5 perturbation probes, then pays
-  for deep reasoning only when answers disagree or confidence is low and the
-  prize is high.
+- **Fast** selects `none`.
+- **Always Think** prefers `high` / `xhigh`.
+- **Dynamic** uses an AutoThink-style routing policy.
+- **Control** uses a balanced low/medium policy.
 
-**Phase 1** is a sealed entrance: the same fixed fee for every agent, ENTER or
-DECLINE. Fees are added to the pot. There is no bidding or raising.
-
-**Phase 2** is private calculation in cycles. Agents publicly THINK(amount),
-PASS, or EXIT. They can see credit purchases, not answers or traces. If a
-cycle has no correct answer, the dealer says so without revealing wrong
-answers. Only the winning cycle is paid. Multiple winners split equally. If
-nobody wins, the whole pot rolls over.
+The dealer owns the agenda, hidden difficulty, answer keys, deterministic
+judging, payout, and audit event. The public table sees only category, prompt,
+pot, messages, selected reasoning tier, and final outcome.
 
 ## Setup
 
@@ -26,28 +21,21 @@ nobody wins, the whole pot rolls over.
 cd mistral_hackathon
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # add MISTRAL_API_KEY if you want live models
-streamlit run app.py
+pip install -r main_ui/requirements.txt
+streamlit run main_ui/app.py
 ```
 
-Environment:
-
-```
-MISTRAL_API_KEY=...
-MISTRAL_CHEAP_MODEL=mistral-medium-3-5
-MISTRAL_STRONG_MODEL=mistral-medium-3-5
-```
-
-Seeded mode (default, no API key) uses curated stubs so Dynamic visibly
-revises traps such as `1/6 → 5/33` on the red-ball probability problem.
+Seeded mode currently uses deterministic offline solvers against the canonical
+dealer problem bank.
 
 ## Costs
 
-| Call | Credits |
+| Tier | Credits |
 | --- | --- |
-| Cheap | 1 |
-| Perturbation | 1 each |
-| Deep | 8 |
+| none | 1 |
+| low | 2 |
+| medium | 3 |
+| high | 5 |
+| xhigh | 9 |
 
-Entrance fees go into the prize pool. THINK purchases buy reasoning only.
+Entry fees go into the prize pool. Reasoning purchases are burned.

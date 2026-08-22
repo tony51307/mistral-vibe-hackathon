@@ -438,6 +438,7 @@ class ModelConfig(BaseModel):
 class ReasoningRouterConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    strategy: Literal["adaptive", "value"] = "adaptive"
     probe_count: int = Field(default=2, ge=1, le=2)
     minimum: ThinkingLevel = "low"
     maximum: ThinkingLevel = "high"

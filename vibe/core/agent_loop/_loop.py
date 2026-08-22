@@ -85,14 +85,19 @@ from vibe.core.middleware import (
 )
 from vibe.core.plan_session import PlanSession
 from vibe.core.reasoning import (
+    CandidateAssessment,
+    CandidateCritique,
     ProbeDecision,
     ProbePerspective,
     ReasoningRoutingDecision,
+    build_candidate_messages,
+    build_critic_messages,
     build_probe_messages,
     clamp_thinking_level,
     is_high_consequence_request,
     is_high_risk_request,
     is_trivial_request,
+    route_candidate,
     route_probe_decisions,
     should_run_critic,
 )
@@ -317,6 +322,7 @@ class _ActiveTurn:
     tool_io: ToolIOPort | None = None
     retry_sink: RetryObserver | None = None
     resolved_thinking: ThinkingLevel | None = None
+    routing_context: str | None = None
 
 
 _NO_TURN = _ActiveTurn()
@@ -1278,6 +1284,7 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             tool_io=tool_io,
             retry_sink=options.retry_sink,
             resolved_thinking=routing.level if routing is not None else None,
+            routing_context=routing.context if routing is not None else None,
         )
         try:
             if routing is not None:
@@ -1706,6 +1713,13 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
 
         async for event in self._inject_mentioned_files(user_msg):
             yield event
+
+        if self._turn.routing_context is not None:
+            self.messages.append(
+                LLMMessage(
+                    role=Role.user, content=self._turn.routing_context, injected=True
+                )
+            )
 
         if auto_title is not None and self.session_logger.set_initial_auto_title(
             auto_title
@@ -2578,6 +2592,8 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
                 stability=1,
                 reason="high_risk",
             )
+        if router_config.strategy == "value":
+            return await self._resolve_value_thinking(request, model)
         if is_trivial_request(request):
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
@@ -2612,6 +2628,53 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
             )
         except Exception:
             logger.warning("Auto-thinking probes failed", exc_info=True)
+            return ReasoningRoutingDecision(
+                level=clamp_thinking_level(
+                    "medium",
+                    minimum=router_config.minimum,
+                    maximum=router_config.maximum,
+                ),
+                stability=0,
+                reason="probe_failed",
+            )
+
+    async def _resolve_value_thinking(
+        self, request: str, model: ModelConfig
+    ) -> ReasoningRoutingDecision:
+        router_config = self.config.reasoning_router
+        probe_model = model.model_copy(update={"thinking": "low"})
+        try:
+            candidate_result = await self._complete(
+                model=probe_model,
+                messages=build_candidate_messages(request),
+                tools=None,
+                tool_choice=None,
+                call_type="secondary_call",
+                max_tokens_override=router_config.max_probe_tokens,
+            )
+            candidate = CandidateAssessment.parse_response(
+                candidate_result.message.content or ""
+            )
+            critique_result = await self._complete(
+                model=probe_model,
+                messages=build_critic_messages(request, candidate),
+                tools=None,
+                tool_choice=None,
+                call_type="secondary_call",
+                max_tokens_override=router_config.max_probe_tokens,
+            )
+            critique = CandidateCritique.parse_response(
+                critique_result.message.content or ""
+            )
+            return route_candidate(
+                request,
+                candidate,
+                critique,
+                minimum=router_config.minimum,
+                maximum=router_config.maximum,
+            )
+        except Exception:
+            logger.warning("Value router failed", exc_info=True)
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(
                     "medium",

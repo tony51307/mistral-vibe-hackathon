@@ -140,6 +140,84 @@ async def test_auto_thinking_runs_critic_for_high_consequence_request() -> None:
 
 
 @pytest.mark.asyncio
+async def test_value_router_reuses_candidate_and_critique_in_final_call() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"candidate":"Inspect the helper", "assumptions":[],'
+                '"risk":"low","confidence":0.95,"cheaply_verifiable":true}'
+            )
+        ],
+        [
+            mock_llm_chunk(
+                content='{"material_issue":false,"severity":"low",'
+                '"critique":"", "confidence":0.95}'
+            )
+        ],
+        [mock_llm_chunk(content="Done")],
+    ])
+    config = build_test_vibe_config(reasoning_router={"strategy": "value"})
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [event async for event in agent.act("Inspect the helper")]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "low"
+    assert [model.thinking for model in backend.requested_models] == [
+        "low",
+        "low",
+        "low",
+    ]
+    assert any(
+        "<auto_thinking_evidence>" in (message.content or "")
+        for message in backend.requests_messages[-1]
+    )
+
+
+@pytest.mark.asyncio
+async def test_value_router_escalates_material_critique() -> None:
+    backend = ModelRecordingBackend([
+        [
+            mock_llm_chunk(
+                content='{"candidate":"Apply the migration", "assumptions":[],'
+                '"risk":"medium","confidence":0.7,"cheaply_verifiable":false}'
+            )
+        ],
+        [
+            mock_llm_chunk(
+                content='{"material_issue":true,"severity":"high",'
+                '"critique":"Existing null rows would fail", "confidence":0.9}'
+            )
+        ],
+        [mock_llm_chunk(content="Backfill before applying the constraint")],
+    ])
+    config = build_test_vibe_config(reasoning_router={"strategy": "value"})
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [event async for event in agent.act("Plan a schema migration")]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "high"
+    assert [model.thinking for model in backend.requested_models] == [
+        "low",
+        "low",
+        "high",
+    ]
+    final_context = "\n".join(
+        message.content or "" for message in backend.requests_messages[-1]
+    )
+    assert "Existing null rows would fail" in final_context
+
+
+@pytest.mark.asyncio
 async def test_explicit_thinking_skips_probes() -> None:
     backend = ModelRecordingBackend([[mock_llm_chunk(content="Done")]])
     config = build_test_vibe_config()

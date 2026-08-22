@@ -1,0 +1,238 @@
+{
+  "created_at": "2026-08-22T22:37:45.004006+00:00",
+  "model": "mistral-medium-3.5",
+  "tasks": [
+    {
+      "id": "addition",
+      "title": "Simple addition",
+      "prompt": "Answer only with the result: 17 + 25.",
+      "expected_auto_level": "low",
+      "category": "arithmetic",
+      "expected_response": "42",
+      "response_match": "exact"
+    },
+    {
+      "id": "uppercase",
+      "title": "Text transformation",
+      "prompt": "Convert `hello world` to uppercase. Answer only with the result.",
+      "expected_auto_level": "low",
+      "category": "transformation",
+      "expected_response": "HELLO WORLD",
+      "response_match": "exact"
+    },
+    {
+      "id": "weekday",
+      "title": "Simple factual transformation",
+      "prompt": "Answer only with the weekday immediately after Tuesday.",
+      "expected_auto_level": "low",
+      "category": "factual",
+      "expected_response": "Wednesday",
+      "response_match": "exact"
+    },
+    {
+      "id": "linear-equation",
+      "title": "Linear equation",
+      "prompt": "Solve 3(x - 4) = 2x + 7. Answer only with the value of x.",
+      "expected_auto_level": "low",
+      "category": "algebra",
+      "expected_response": "19",
+      "response_match": "exact"
+    },
+    {
+      "id": "probability",
+      "title": "Without-replacement probability",
+      "prompt": "A jar has 5 red, 4 blue, and 3 green balls. Two are drawn without replacement. Answer only with the simplified probability that both are red.",
+      "expected_auto_level": "high",
+      "category": "probability",
+      "expected_response": "5/33",
+      "response_match": "contains"
+    },
+    {
+      "id": "bat-ball",
+      "title": "Bat and ball cognitive reflection",
+      "prompt": "A bat and ball cost $1.10 total. The bat costs $1 more than the ball. Answer only with the ball's cost in dollars.",
+      "expected_auto_level": "high",
+      "category": "reasoning",
+      "expected_response": "0.05",
+      "response_match": "contains"
+    },
+    {
+      "id": "monty-hall",
+      "title": "Monty Hall decision",
+      "prompt": "In the standard Monty Hall problem, after the host opens a goat door, should the contestant stay or switch to maximize winning probability? Answer only with STAY or SWITCH.",
+      "expected_auto_level": "high",
+      "category": "probability",
+      "expected_response": "SWITCH",
+      "response_match": "exact"
+    },
+    {
+      "id": "combinations",
+      "title": "Pair combinations",
+      "prompt": "How many unordered pairs can be selected from 12 distinct items? Answer only with the number.",
+      "expected_auto_level": "high",
+      "category": "combinatorics",
+      "expected_response": "66",
+      "response_match": "exact"
+    },
+    {
+      "id": "syllogism",
+      "title": "Syllogism validity",
+      "prompt": "All bloops are razzies. Some razzies are lazzies. Does it follow that all bloops are lazzies? Answer only YES or NO.",
+      "expected_auto_level": "high",
+      "category": "logic",
+      "expected_response": "NO",
+      "response_match": "exact"
+    },
+    {
+      "id": "python-alias",
+      "title": "Python aliasing behavior",
+      "prompt": "What does this Python code print? `x = [1, 2]; y = x; x += [3]; print(y)`. Answer only with the printed list.",
+      "expected_auto_level": "high",
+      "category": "coding",
+      "expected_response": "[1, 2, 3]",
+      "response_match": "contains"
+    }
+  ],
+  "results": [
+    {
+      "task_id": "addition",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "42",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.287734047997219,
+      "total_tokens": 8154,
+      "cost": 0.0098922,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "uppercase",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "HELLO WORLD",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.444243116999132,
+      "total_tokens": 8219,
+      "cost": 0.0096093,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "weekday",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "Wednesday",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.573196487999667,
+      "total_tokens": 8177,
+      "cost": 0.0127695,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "linear-equation",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "19",
+      "routed_level": "medium",
+      "routing_reason": "disagreement",
+      "stability": 1.0,
+      "elapsed_seconds": 8.171158778000972,
+      "total_tokens": 8559,
+      "cost": 0.0093705,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "probability",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "5/33",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.0,
+      "elapsed_seconds": 16.049876345001394,
+      "total_tokens": 8546,
+      "cost": 0.014697,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "bat-ball",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "0.05",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.243414199998369,
+      "total_tokens": 8301,
+      "cost": 0.0130875,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "monty-hall",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "SWITCH",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.247961796998425,
+      "total_tokens": 8312,
+      "cost": 0.013092,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "combinations",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "66",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.0,
+      "elapsed_seconds": 8.207086595000874,
+      "total_tokens": 8530,
+      "cost": 0.012004200000000001,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "syllogism",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "NO",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.374242829999275,
+      "total_tokens": 8376,
+      "cost": 0.0105432,
+      "quality_pass": true,
+      "error": null
+    },
+    {
+      "task_id": "python-alias",
+      "policy": "auto_value",
+      "trial": 1,
+      "response": "[1, 2, 3]",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 11.345465496000543,
+      "total_tokens": 8339,
+      "cost": 0.0104457,
+      "quality_pass": true,
+      "error": null
+    }
+  ]
+}

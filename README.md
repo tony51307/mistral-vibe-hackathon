@@ -69,6 +69,19 @@ Evaluation artifacts include:
   the latest safety tuning.
 - `arena-results-tuned/report.md`: post-tuning AutoThink routing verification.
 - `arena-results-adaptive/report.md`: one-model adaptive-probe evaluation.
+- `arena-results-value-comparison/analysis.md`: quality/cost comparison of the
+  preserved adaptive router and the candidate/critic value router.
+
+Select the value-of-computation strategy without changing models:
+
+```toml
+[reasoning_router]
+strategy = "value"
+```
+
+The default remains `adaptive` for compatibility. The `value` strategy creates
+a reusable Low candidate, critiques it for a concrete material defect, and
+passes both into the final Low/Medium/High call.
 
 The expanded runner accepts `--repeats N` for repeated trials. The current
 single-trial reports expose substantial latency and cost variance, so they should

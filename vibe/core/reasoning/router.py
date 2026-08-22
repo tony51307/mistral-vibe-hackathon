@@ -38,6 +38,7 @@ class ReasoningRoutingDecision(BaseModel):
     level: ThinkingLevel
     stability: float = Field(ge=0, le=1)
     reason: Literal["fast_path", "stable", "disagreement", "high_risk", "probe_failed"]
+    context: str | None = None
 
 
 _PROBE_SYSTEM = """You are a cheap decision-stability probe for a coding agent.

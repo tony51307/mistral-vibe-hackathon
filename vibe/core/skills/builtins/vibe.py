@@ -227,6 +227,7 @@ auto_compact_threshold = 200000
 supports_images = true            # vision-capable; allows @-mentioned images
 
 [reasoning_router]
+strategy = "adaptive"              # "adaptive" or candidate/critic "value"
 probe_count = 2                    # maximum probes; critic runs only when uncertain
 minimum = "low"                   # lower bound for the routed level
 maximum = "high"                  # upper bound for the routed level

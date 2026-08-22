@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 from vibe.core.paths import SESSION_LOG_DIR
 from vibe.utils.io import read_safe
 
-type Policy = Literal["low", "high", "auto"]
+type Policy = Literal["low", "high", "auto_adaptive", "auto_value"]
 
 
 class ArenaTask(BaseModel):
@@ -26,6 +26,8 @@ class ArenaTask(BaseModel):
     prompt: str
     expected_auto_level: Literal["low", "high"]
     category: str = "general"
+    expected_response: str | None = None
+    response_match: Literal["exact", "contains"] = "exact"
 
 
 class ArenaResult(BaseModel):
@@ -41,6 +43,7 @@ class ArenaResult(BaseModel):
     elapsed_seconds: float
     total_tokens: int | None = None
     cost: float | None = None
+    quality_pass: bool | None = None
     error: str | None = None
 
 
@@ -64,7 +67,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--model", default="mistral-vibe-cli-latest")
     parser.add_argument("--alias", default="mistral-medium-3.5")
     parser.add_argument(
-        "--policies", nargs="+", choices=("low", "high", "auto"), default=None
+        "--policies",
+        nargs="+",
+        choices=("low", "high", "auto_adaptive", "auto_value"),
+        default=None,
     )
     parser.add_argument("--limit", type=int)
     parser.add_argument("--repeats", type=int, default=1)
@@ -78,13 +84,14 @@ def load_tasks(path: Path, limit: int | None = None) -> list[ArenaTask]:
 
 
 def _model_override(model: str, alias: str, policy: Policy) -> str:
+    thinking = "auto" if policy.startswith("auto_") else policy
     return json.dumps([
         {
             "name": model,
             "provider": "mistral",
             "alias": alias,
             "display_name": alias,
-            "thinking": policy,
+            "thinking": thinking,
             "supports_images": True,
         }
     ])
@@ -96,6 +103,10 @@ async def run_case(
     env = dict(os.environ)
     env["VIBE_ACTIVE_MODEL"] = alias
     env["VIBE_MODELS"] = _model_override(model, alias, policy)
+    if policy.startswith("auto_"):
+        env["VIBE_REASONING_ROUTER"] = json.dumps({
+            "strategy": policy.removeprefix("auto_")
+        })
     started = time.perf_counter()
     process = await asyncio.create_subprocess_exec(
         sys.executable,
@@ -125,7 +136,7 @@ async def run_case(
         )
     try:
         history = json.loads(stdout)
-        return _result_from_history(task.id, policy, history, elapsed, trial)
+        return _result_from_history(task, policy, history, elapsed, trial)
     except (json.JSONDecodeError, ValueError) as exc:
         return ArenaResult(
             task_id=task.id,
@@ -138,7 +149,7 @@ async def run_case(
 
 
 def _result_from_history(
-    task_id: str,
+    task: ArenaTask,
     policy: Policy,
     history: list[dict[str, object]],
     elapsed: float,
@@ -163,7 +174,7 @@ def _result_from_history(
     tokens, cost = _session_metrics(session_id)
     stability = routing.get("stability") if routing else None
     return ArenaResult(
-        task_id=task_id,
+        task_id=task.id,
         policy=policy,
         trial=trial,
         response=response,
@@ -173,6 +184,7 @@ def _result_from_history(
         elapsed_seconds=elapsed,
         total_tokens=tokens,
         cost=cost,
+        quality_pass=_quality_pass(task, response),
     )
 
 
@@ -215,9 +227,11 @@ def _session_metrics(session_id: str) -> tuple[int | None, float | None]:
 
 
 def render_markdown(report: ArenaReport) -> str:
-    summaries = {
-        policy: _policy_summary(report.results, policy)
-        for policy in ("low", "high", "auto")
+    policies: tuple[Policy, ...] = tuple(
+        dict.fromkeys(result.policy for result in report.results)
+    )
+    summaries: dict[Policy, dict[str, float]] = {
+        policy: _policy_summary(report.results, policy) for policy in policies
     }
     lines = [
         "# Vibe Reasoning Arena",
@@ -225,8 +239,8 @@ def render_markdown(report: ArenaReport) -> str:
         f"Model: `{report.model}`",
         f"Created: {report.created_at}",
         "",
-        "| Task | Trial | Policy | Routed | Tokens | Cost | Seconds |",
-        "| --- | ---: | --- | --- | ---: | ---: | ---: |",
+        "| Task | Trial | Policy | Routed | Quality | Tokens | Cost | Seconds |",
+        "| --- | ---: | --- | --- | ---: | ---: | ---: | ---: |",
     ]
     tasks = {task.id: task for task in report.tasks}
     for result in report.results:
@@ -234,48 +248,46 @@ def render_markdown(report: ArenaReport) -> str:
         routed = result.routed_level or "—"
         tokens = str(result.total_tokens) if result.total_tokens is not None else "—"
         cost = f"${result.cost:.5f}" if result.cost is not None else "—"
+        quality = (
+            "—" if result.quality_pass is None else "✓" if result.quality_pass else "✗"
+        )
         lines.append(
-            f"| {task.title} | {result.trial} | {result.policy} | {routed} | {tokens} | "
-            f"{cost} | {result.elapsed_seconds:.2f} |"
+            f"| {task.title} | {result.trial} | {result.policy} | {routed} | "
+            f"{quality} | {tokens} | {cost} | {result.elapsed_seconds:.2f} |"
         )
     lines.extend([
         "",
         "## Policy totals",
         "",
-        "| Policy | Runs | Avg tokens | Avg cost | Avg seconds |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        "| Policy | Runs | Quality | Avg tokens | Avg cost | Avg seconds |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ])
     for policy, summary in summaries.items():
         lines.append(
-            f"| {policy} | {summary['runs']:.0f} | {summary['tokens']:.0f} | "
+            f"| {policy} | {summary['runs']:.0f} | {summary['quality']:.1f}% | "
+            f"{summary['tokens']:.0f} | "
             f"${summary['cost']:.5f} | {summary['seconds']:.2f} |"
         )
-    high = summaries["high"]
-    auto = summaries["auto"]
-    if high["cost"] > 0 and high["seconds"] > 0:
-        cost_change = (auto["cost"] - high["cost"]) / high["cost"] * 100
-        time_change = (auto["seconds"] - high["seconds"]) / high["seconds"] * 100
+    _append_comparisons(lines, summaries)
+    for policy in policies:
+        if not policy.startswith("auto_"):
+            continue
+        auto_results = [result for result in report.results if result.policy == policy]
+        correct = sum(
+            result.routed_level == tasks[result.task_id].expected_auto_level
+            for result in auto_results
+        )
         lines.extend([
             "",
-            f"AutoThink vs High: **{_change_label(cost_change, 'cost')}**, "
-            f"**{_change_label(time_change, 'latency')}**.",
+            f"{policy} routing agreement: **{correct}/{len(auto_results)} "
+            f"({_percentage(correct, len(auto_results)):.1f}%)**",
+            "",
+            f"### {policy} routing confusion",
+            "",
+            "| Expected | Routed low | Routed high | Other/error |",
+            "| --- | ---: | ---: | ---: |",
         ])
-    auto_results = [result for result in report.results if result.policy == "auto"]
-    correct = sum(
-        result.routed_level == tasks[result.task_id].expected_auto_level
-        for result in auto_results
-    )
-    lines.extend([
-        "",
-        f"AutoThink routing agreement: **{correct}/{len(auto_results)} "
-        f"({_percentage(correct, len(auto_results)):.1f}%)**",
-        "",
-        "## Routing confusion",
-        "",
-        "| Expected | Routed low | Routed high | Other/error |",
-        "| --- | ---: | ---: | ---: |",
-    ])
-    lines.extend(_routing_confusion_rows(auto_results, tasks))
+        lines.extend(_routing_confusion_rows(auto_results, tasks))
     lines.extend(["", "## Responses", ""])
     for result in report.results:
         lines.extend([
@@ -292,9 +304,13 @@ def _policy_summary(results: list[ArenaResult], policy: Policy) -> dict[str, flo
     selected = [result for result in results if result.policy == policy]
     count = len(selected)
     if count == 0:
-        return {"runs": 0.0, "tokens": 0.0, "cost": 0.0, "seconds": 0.0}
+        return {"runs": 0.0, "quality": 0.0, "tokens": 0.0, "cost": 0.0, "seconds": 0.0}
+    scored = [
+        result.quality_pass for result in selected if result.quality_pass is not None
+    ]
     return {
         "runs": float(count),
+        "quality": _percentage(sum(scored), len(scored)),
         "tokens": sum(result.total_tokens or 0 for result in selected) / count,
         "cost": sum(result.cost or 0 for result in selected) / count,
         "seconds": sum(result.elapsed_seconds for result in selected) / count,
@@ -308,6 +324,35 @@ def _percentage(numerator: int, denominator: int) -> float:
 def _change_label(change: float, metric: str) -> str:
     direction = "increase" if change > 0 else "reduction"
     return f"{abs(change):.1f}% {metric} {direction}"
+
+
+def _quality_pass(task: ArenaTask, response: str) -> bool | None:
+    if task.expected_response is None:
+        return None
+    actual = " ".join(response.casefold().split())
+    expected = " ".join(task.expected_response.casefold().split())
+    if task.response_match == "contains":
+        return expected in actual
+    return actual == expected
+
+
+def _append_comparisons(
+    lines: list[str], summaries: dict[Policy, dict[str, float]]
+) -> None:
+    high = summaries.get("high")
+    if high is None or high["cost"] <= 0 or high["seconds"] <= 0:
+        return
+    for policy in ("auto_adaptive", "auto_value"):
+        auto = summaries.get(policy)
+        if auto is None:
+            continue
+        cost_change = (auto["cost"] - high["cost"]) / high["cost"] * 100
+        time_change = (auto["seconds"] - high["seconds"]) / high["seconds"] * 100
+        lines.extend([
+            "",
+            f"{policy} vs High: **{_change_label(cost_change, 'cost')}**, "
+            f"**{_change_label(time_change, 'latency')}**.",
+        ])
 
 
 def _routing_confusion_rows(
@@ -331,7 +376,12 @@ async def run() -> int:
     if args.repeats < 1:
         raise ValueError("--repeats must be at least 1")
     tasks = load_tasks(args.tasks, args.limit)
-    policies: list[Policy] = args.policies or ["low", "high", "auto"]
+    policies: list[Policy] = args.policies or [
+        "low",
+        "high",
+        "auto_adaptive",
+        "auto_value",
+    ]
     results: list[ArenaResult] = []
     for trial in range(1, args.repeats + 1):
         for task in tasks:

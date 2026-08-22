@@ -35,7 +35,7 @@ streamlit run main_ui/app.py
 
 The app runs in offline deterministic simulation mode by default.
 
-## Optional Mistral API
+## Optional Live Model APIs
 
 Create a local `.env` file:
 
@@ -43,9 +43,14 @@ Create a local `.env` file:
 MISTRAL_API_KEY=...
 MISTRAL_CHEAP_MODEL=mistral-small-latest
 MISTRAL_STRONG_MODEL=mistral-large-latest
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-5.6-luna
 ```
 
-Then enable `Use Mistral API` in the Streamlit sidebar.
+Then choose `Offline`, `Mistral`, or `OpenAI` from the `Model backend` selector
+in the Streamlit sidebar. The OpenAI option uses the Responses API with
+`gpt-5.6-luna`. Without the selected provider's key, the deterministic simulator
+runs instead.
 
 ## AutoThink Boundary
 

@@ -5,7 +5,7 @@ import streamlit as st
 from event_log import events_to_json
 from game import GameEngine, SeasonState
 from metrics import agent_scoreboard, bankroll_series, economy_metrics
-
+from mistral_client import MistralClient, ModelProvider
 
 st.set_page_config(page_title="Pay-to-Think Arena", layout="wide")
 
@@ -17,22 +17,38 @@ def get_state() -> tuple[GameEngine, SeasonState]:
     return st.session_state.engine, st.session_state.season
 
 
-def reset(seed: int, use_mistral: bool) -> None:
-    st.session_state.engine = GameEngine(seed=seed, use_mistral=use_mistral)
+def reset(seed: int, use_mistral: bool, model_provider: ModelProvider) -> None:
+    st.session_state.engine = GameEngine(
+        seed=seed, use_mistral=use_mistral, model_provider=model_provider
+    )
     st.session_state.season = st.session_state.engine.new_season()
 
 
 engine, season = get_state()
 
 st.title("Pay-to-Think Dealer Economy")
-st.caption("V1 economy with fixed entry fees, burned reasoning spend, dealer contribution, rollover, and AutoThink routing.")
+st.caption(
+    "V1 economy with fixed entry fees, burned reasoning spend, dealer contribution, rollover, and AutoThink routing."
+)
 
 with st.sidebar:
     st.header("Controls")
     seed = st.number_input("Seed", min_value=1, max_value=9999, value=season.seed)
-    use_mistral = st.toggle("Use Mistral API", value=engine.use_mistral)
+    current_mode = engine.model_provider if engine.use_mistral else "offline"
+    model_mode = st.selectbox(
+        "Model backend",
+        options=("offline", "mistral", "openai"),
+        index=("offline", "mistral", "openai").index(current_mode),
+        format_func=str.title,
+    )
+    use_mistral = model_mode != "offline"
+    model_provider: ModelProvider = "openai" if model_mode == "openai" else "mistral"
+    selected_client = MistralClient(model_provider)
+    if use_mistral and not selected_client.enabled:
+        key = "MISTRAL_API_KEY" if model_provider == "mistral" else "OPENAI_API_KEY"
+        st.warning(f"{key} is not configured. The deterministic simulator will run.")
     if st.button("Reset season", use_container_width=True):
-        reset(int(seed), use_mistral)
+        reset(int(seed), use_mistral, model_provider)
         st.rerun()
     if st.button("Run one round", use_container_width=True):
         engine.play_next_round(season)
@@ -69,7 +85,10 @@ if season.history:
 
     st.markdown("**Table Talk**")
     st.dataframe(
-        [{"agent": season.agents[agent_id].name, "message": message} for agent_id, message in latest.public_messages.items()],
+        [
+            {"agent": season.agents[agent_id].name, "message": message}
+            for agent_id, message in latest.public_messages.items()
+        ],
         use_container_width=True,
         hide_index=True,
     )
@@ -101,14 +120,12 @@ if season.history:
         trace_cols[2].metric("Risk", decision.risk)
         trace_cols[3].metric("Tier", decision.reasoning_tier)
         trace_cols[4].metric("Probe Tokens", decision.probe_cost_tokens)
-        st.json(
-            {
-                "baseline_decision": decision.baseline_decision,
-                "critical_perspective_decision": decision.critical_perspective_decision,
-                "reason": decision.reason,
-                "trace": decision.trace,
-            }
-        )
+        st.json({
+            "baseline_decision": decision.baseline_decision,
+            "critical_perspective_decision": decision.critical_perspective_decision,
+            "reason": decision.reason,
+            "trace": decision.trace,
+        })
 else:
     st.info("Run one round to start the season.")
 

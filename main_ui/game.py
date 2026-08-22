@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 import hashlib
@@ -9,11 +10,10 @@ import json
 from pathlib import Path
 import re
 import sys
-from typing import Any, Mapping
+from typing import Any
 
 from metrics import attach_bankroll, empty_stats, summary, update_after_round
 from prompts import CHEAP_SYSTEM, DEEP_SYSTEM, cheap_user, deep_user
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEALER_ROOT = REPO_ROOT / "dealer"
@@ -24,20 +24,17 @@ if str(DEALER_ROOT) not in sys.path:
 
 from dealer.game.agent_config import load_agent_catalog
 from dealer.game.dealer_distributor import DealerGame, SeasonComplete
-from dealer.game.loaders import load_agendas, load_problem_bank, load_table_modes
+from dealer.game.loaders import load_agendas, load_problem_bank
 from dealer.game.models import GameConfig as DealerGameConfig
-
+from dealer.game.reasoning_provider import Router, Solver
+from mistral_client import ModelProvider
 
 DEFAULT_ROSTER_ID = "social_3"
 DEFAULT_ENTRY_FEE = 15
+HIGH_STAKES_POT = 100
+CODE_FENCE_MIN_LINES = 2
 
-TIER_PRICE = {
-    "none": 1,
-    "low": 2,
-    "medium": 3,
-    "high": 5,
-    "xhigh": 9,
-}
+TIER_PRICE = {"none": 1, "low": 2, "medium": 3, "high": 5, "xhigh": 9}
 
 REASONING_EFFORT_BY_TIER = {
     "none": None,
@@ -93,6 +90,7 @@ class GameConfig:
     strategy_number: int = 5
     seed: int = 260822
     use_live_api: bool = True
+    model_provider: ModelProvider = "mistral"
     enable_bluffing: bool = False
 
 
@@ -129,8 +127,7 @@ def new_game(config: GameConfig) -> GameState:
     agent_catalog = load_agent_catalog(DEALER_ROOT / "agents/agent_rosters_v1.yaml")
     roster = agent_catalog.get_roster(config.agent_roster)
     dealer_config = DealerGameConfig.for_table_size(
-        roster.initial_agent_count,
-        entry_fee_cents=cents(config.entrance_fee),
+        roster.initial_agent_count, entry_fee_cents=cents(config.entrance_fee)
     )
     dealer = DealerGame(
         player_ids=roster.player_ids(),
@@ -158,7 +155,9 @@ def new_game(config: GameConfig) -> GameState:
         agent_id: str(metadata[agent_id]["profile_id"]) for agent_id in player_ids
     }
     policies = {
-        agent_id: agent_catalog.profile_for_agent(config.agent_roster, agent_id).policies.reasoning
+        agent_id: agent_catalog.profile_for_agent(
+            config.agent_roster, agent_id
+        ).policies.reasoning
         for agent_id in player_ids
     }
     thinking_labels = {
@@ -182,7 +181,10 @@ def new_game(config: GameConfig) -> GameState:
         bluff_modes=bluff_modes,
         listens_to_talk=listens_to_talk,
         bankrolls={name: config.start_bankroll for name in display_names.values()},
-        stats={name: empty_stats(name, config.start_bankroll) for name in display_names.values()},
+        stats={
+            name: empty_stats(name, config.start_bankroll)
+            for name in display_names.values()
+        },
     )
 
 
@@ -199,7 +201,9 @@ def play_round(state: GameState, client: Any) -> dict[str, Any]:
 
     round_number = next(iter(category_payloads.values()))["round"]
     dealer.collect_entries()
-    messages = _table_talk(category_payloads, state) if state.config.enable_bluffing else {}
+    messages = (
+        _table_talk(category_payloads, state) if state.config.enable_bluffing else {}
+    )
     display_messages = dealer.record_table_talk(messages)
     problem_payloads = dealer.reveal_problem()
     routers = {
@@ -246,7 +250,7 @@ def _table_talk(
     return messages
 
 
-def _bluff_message(
+def _bluff_message(  # noqa: PLR0911
     agent_id: str,
     payload: Mapping[str, Any],
     state: GameState,
@@ -279,7 +283,9 @@ def _bluff_message(
     return f"{name}: {category} is uncertain. I will decide after hearing the table."
 
 
-def _truncate_table_talk(message: str, max_words: int = 50, max_chars: int = 100) -> str:
+def _truncate_table_talk(
+    message: str, max_words: int = 50, max_chars: int = 100
+) -> str:
     words = message.split()
     if len(words) > max_words:
         message = " ".join(words[:max_words])
@@ -288,14 +294,18 @@ def _truncate_table_talk(message: str, max_words: int = 50, max_chars: int = 100
     return message
 
 
-def _router(agent_id: str, round_number: int, policy: str, listens_to_talk: bool):
+def _router(
+    agent_id: str, round_number: int, policy: str, listens_to_talk: bool
+) -> Router:
     def route(payload: Mapping[str, Any]) -> dict[str, str]:
         affordable = set(payload["affordable_tiers"])
         pot = dollars(payload["pot_cents"])
         if policy == "always_none":
             tier = "none"
         elif policy == "always_high":
-            tier = "xhigh" if pot >= 100 or round_number % 8 == 0 else "high"
+            tier = (
+                "xhigh" if pot >= HIGH_STAKES_POT or round_number % 8 == 0 else "high"
+            )
         elif policy in {"kelly_value", "opponent_aware"}:
             tier = "medium" if round_number % 3 == 0 else "low"
         else:
@@ -315,10 +325,18 @@ def _router(agent_id: str, round_number: int, policy: str, listens_to_talk: bool
 def _adjust_tier_for_table_talk(tier: str, public_messages: Any) -> str:
     if not isinstance(public_messages, Mapping):
         return tier
-    table_text = " ".join(str(message).casefold() for message in public_messages.values())
-    if any(token in table_text for token in ("strongest", "high reasoning", "xhigh", "serious bid", "overpay")):
+    table_text = " ".join(
+        str(message).casefold() for message in public_messages.values()
+    )
+    if any(
+        token in table_text
+        for token in ("strongest", "high reasoning", "xhigh", "serious bid", "overpay")
+    ):
         return _raise_tier(tier)
-    if any(token in table_text for token in ("save chips", "keeping this cheap", "not worth", "crowded")):
+    if any(
+        token in table_text
+        for token in ("save chips", "keeping this cheap", "not worth", "crowded")
+    ):
         return _lower_tier(tier)
     return tier
 
@@ -338,7 +356,7 @@ def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
     pot = dollars(payload["pot_cents"])
     score = _score(str(payload["problem_id"]), round_number, pot)
     disagreement = category in {"probability", "algorithms", "logic"} or score % 5 == 0
-    high_risk = pot >= 100 or score % 11 == 0
+    high_risk = pot >= HIGH_STAKES_POT or score % 11 == 0
     if high_risk and disagreement:
         return "xhigh" if score % 4 == 0 else "high"
     if disagreement:
@@ -348,7 +366,7 @@ def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
     return "low" if score % 4 else "none"
 
 
-def _solver(agent_id: str, problem: dict[str, Any], client: Any | None):
+def _solver(agent_id: str, problem: dict[str, Any], client: Any | None) -> Solver:
     def solve(payload: Mapping[str, Any]) -> dict[str, Any]:
         tier = str(payload["reasoning_tier"])
         if client is not None and getattr(client, "available", False):
@@ -362,7 +380,9 @@ def _solver(agent_id: str, problem: dict[str, Any], client: Any | None):
                     model="offline-rate-limit-fallback",
                     error=str(exc),
                 )
-        return _offline_solver_response(agent_id, problem, tier, model="offline-dealer-demo")
+        return _offline_solver_response(
+            agent_id, problem, tier, model="offline-dealer-demo"
+        )
 
     return solve
 
@@ -378,23 +398,23 @@ def _offline_solver_response(
     answer = problem["answer"]["display"]
     if not _mock_correct(agent_id, str(problem["id"]), tier, problem):
         answer = _wrong_answer(problem)
-    response = {
-        "answer": answer,
-        "model": model,
-        "api_reasoning_configuration": tier,
-    }
+    response = {"answer": answer, "model": model, "api_reasoning_configuration": tier}
     if error:
         response["provider_error"] = error[:240]
     return response
 
 
-def _live_solver_response(client: Any, payload: Mapping[str, Any], tier: str) -> dict[str, Any]:
+def _live_solver_response(
+    client: Any, payload: Mapping[str, Any], tier: str
+) -> dict[str, Any]:
     prompt = str(payload["prompt_markdown"])
     tier_note = f"\n\nAllowed reasoning tier bid: {tier}"
     strong = tier in {"medium", "high", "xhigh"}
     data = client.chat_json(
         system=DEEP_SYSTEM if strong else CHEAP_SYSTEM,
-        user=deep_user(f"{prompt}{tier_note}") if strong else cheap_user(f"{prompt}{tier_note}"),
+        user=deep_user(f"{prompt}{tier_note}")
+        if strong
+        else cheap_user(f"{prompt}{tier_note}"),
         strong=strong,
         temperature=0.1 if strong else 0.0,
         reasoning_effort=REASONING_EFFORT_BY_TIER[tier],
@@ -411,6 +431,8 @@ def _live_solver_response(client: Any, payload: Mapping[str, Any], tier: str) ->
         response["actual_input_tokens"] = usage["prompt_tokens"]
     if usage.get("completion_tokens") is not None:
         response["actual_output_tokens"] = usage["completion_tokens"]
+    if data.get("_latency_ms") is not None:
+        response["latency_ms"] = data["_latency_ms"]
     return response
 
 
@@ -446,7 +468,11 @@ def _extract_live_answer(data: Mapping[str, Any]) -> str:
 def _strip_code_fence(text: str) -> str:
     stripped = text.strip()
     lines = stripped.splitlines()
-    if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].strip() == "```":
+    if (
+        len(lines) >= CODE_FENCE_MIN_LINES
+        and lines[0].startswith("```")
+        and lines[-1].strip() == "```"
+    ):
         return "\n".join(lines[1:-1]).strip()
     return stripped
 
@@ -460,7 +486,10 @@ def _first_scalar_answer(text: str) -> str:
     match = re.search(r'"answer"\s*:\s*"([^"]+)"', stripped)
     if match:
         return match.group(1).strip()
-    match = re.search(r"(?i)(?:final answer|answer)\s*(?:is|:)\s*([+-]?\d+(?:\.\d+)?(?:/\d+)?)", stripped)
+    match = re.search(
+        r"(?i)(?:final answer|answer)\s*(?:is|:)\s*([+-]?\d+(?:\.\d+)?(?:/\d+)?)",
+        stripped,
+    )
     if match:
         return match.group(1).strip()
     numbers = re.findall(r"[+-]?\d+(?:\.\d+)?(?:/\d+)?", stripped)
@@ -469,14 +498,46 @@ def _first_scalar_answer(text: str) -> str:
     return ""
 
 
-def _mock_correct(agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]) -> bool:
+def _mock_correct(
+    agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]
+) -> bool:
     difficulty = problem["dealer_meta"]["difficulty"]
     probabilities = {
-        "trivial": {"none": 0.92, "low": 0.95, "medium": 0.97, "high": 0.99, "xhigh": 0.99},
-        "easy": {"none": 0.82, "low": 0.88, "medium": 0.93, "high": 0.97, "xhigh": 0.99},
-        "medium": {"none": 0.52, "low": 0.62, "medium": 0.76, "high": 0.86, "xhigh": 0.91},
-        "hard": {"none": 0.25, "low": 0.36, "medium": 0.54, "high": 0.70, "xhigh": 0.80},
-        "very_hard": {"none": 0.12, "low": 0.22, "medium": 0.36, "high": 0.54, "xhigh": 0.66},
+        "trivial": {
+            "none": 0.92,
+            "low": 0.95,
+            "medium": 0.97,
+            "high": 0.99,
+            "xhigh": 0.99,
+        },
+        "easy": {
+            "none": 0.82,
+            "low": 0.88,
+            "medium": 0.93,
+            "high": 0.97,
+            "xhigh": 0.99,
+        },
+        "medium": {
+            "none": 0.52,
+            "low": 0.62,
+            "medium": 0.76,
+            "high": 0.86,
+            "xhigh": 0.91,
+        },
+        "hard": {
+            "none": 0.25,
+            "low": 0.36,
+            "medium": 0.54,
+            "high": 0.70,
+            "xhigh": 0.80,
+        },
+        "very_hard": {
+            "none": 0.12,
+            "low": 0.22,
+            "medium": 0.36,
+            "high": 0.54,
+            "xhigh": 0.66,
+        },
     }
     probability = probabilities.get(difficulty, probabilities["medium"])[tier]
     if agent_id == "dynamic" and tier in {"high", "xhigh"}:
@@ -599,7 +660,9 @@ def _record_from_event(
         ],
         "winners": winners,
         "payouts": payouts,
-        "payout_each": dollars(event["pot_cents"] // max(1, len(winners))) if winners else 0,
+        "payout_each": dollars(event["pot_cents"] // max(1, len(winners)))
+        if winners
+        else 0,
         "prize": dollars(event["pot_cents"]),
         "rollover": dollars(event["rollover_out_cents"]),
         "bankrolls": {
@@ -613,7 +676,11 @@ def _record_from_event(
 def _autothink_trace(
     agent_id: str, row: dict[str, Any], event: dict[str, Any], state: GameState
 ) -> dict[str, Any]:
-    if state.policies.get(agent_id) not in {"perturbation_router", "dynamic", "learned"}:
+    if state.policies.get(agent_id) not in {
+        "perturbation_router",
+        "dynamic",
+        "learned",
+    }:
         return {}
     tier = row["router_tier"]
     paid = tier in {"high", "xhigh"}
@@ -628,14 +695,17 @@ def _autothink_trace(
     }
 
 
-def _agent_metrics(agent_id: str, row: dict[str, Any], state: GameState) -> dict[str, Any]:
+def _agent_metrics(
+    agent_id: str, row: dict[str, Any], state: GameState
+) -> dict[str, Any]:
     tier = row["router_tier"]
     return {
         "cheap_calls": 1 if tier in {"none", "low"} else 0,
         "perturbation_calls": 2 if agent_id == "dynamic" else 0,
         "deep_calls": 1 if tier in {"high", "xhigh"} else 0,
         "deep_triggered": agent_id == "dynamic" and tier in {"high", "xhigh"},
-        "changed_answer": state.policies.get(agent_id) == "perturbation_router" and tier in {"high", "xhigh"},
+        "changed_answer": state.policies.get(agent_id) == "perturbation_router"
+        and tier in {"high", "xhigh"},
     }
 
 

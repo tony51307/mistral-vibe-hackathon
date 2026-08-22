@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from .agent_config import AgentCatalog, load_agent_catalog
 from .economy import affordable_tiers, highest_affordable_tier, split_pot
 from .event_log import JsonlEventLog
 from .judge import judge_answer
@@ -59,6 +60,9 @@ class DealerGame:
         code_version: str = "working-tree",
         table_mode_id: str = "custom",
         table_config_sha256: str | None = None,
+        agent_roster_id: str | None = None,
+        agent_config_sha256: str | None = None,
+        agent_metadata: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         if not player_ids or len(set(player_ids)) != len(player_ids):
             raise ValueError("player_ids must be a non-empty unique sequence")
@@ -76,6 +80,14 @@ class DealerGame:
         self.code_version = code_version
         self.table_mode_id = table_mode_id
         self.table_config_sha256 = table_config_sha256
+        self.agent_roster_id = agent_roster_id
+        self.agent_config_sha256 = agent_config_sha256
+        self.agent_metadata = {
+            agent_id: dict(metadata)
+            for agent_id, metadata in (agent_metadata or {}).items()
+        }
+        if self.agent_metadata and set(self.agent_metadata) != set(player_ids):
+            raise ValueError("agent metadata must match every player ID exactly")
         self.players = {
             agent_id: PlayerState(agent_id, self.config.starting_bankroll_cents)
             for agent_id in player_ids
@@ -95,6 +107,7 @@ class DealerGame:
         self._last_event: dict[str, Any] | None = None
         self._public_problem_payloads: dict[str, dict[str, Any]] = {}
         self._season_result: dict[str, Any] | None = None
+        self._public_history: list[dict[str, Any]] = []
 
     @classmethod
     def from_table_mode(
@@ -133,6 +146,44 @@ class DealerGame:
             **kwargs,
         )
 
+    @classmethod
+    def from_agent_roster(
+        cls,
+        *,
+        agent_catalog: AgentCatalog,
+        roster_id: str,
+        problem_bank: ProblemBank,
+        agenda_catalog: AgendaCatalog,
+        seed: int,
+        strategy_number: int | None = None,
+        **kwargs: Any,
+    ) -> DealerGame:
+        roster = agent_catalog.get_roster(roster_id)
+        if agent_catalog.schema_version != agenda_catalog.schema_version:
+            raise ValueError("agent and agenda schema versions must match")
+        if "config" in kwargs or "player_ids" in kwargs:
+            raise ValueError("agent rosters derive player IDs and GameConfig")
+        config = GameConfig.for_table_size(roster.initial_agent_count)
+        if agent_catalog.table_talk.max_chars != config.message_max_chars:
+            raise ValueError("agent and dealer table-talk limits must match")
+        return cls(
+            player_ids=roster.player_ids(),
+            problem_bank=problem_bank,
+            agenda_catalog=agenda_catalog,
+            strategy_number=(
+                roster.recommended_agenda_strategy
+                if strategy_number is None
+                else strategy_number
+            ),
+            seed=seed,
+            config=config,
+            table_mode_id=f"agent_roster:{roster.roster_id}",
+            agent_roster_id=roster.roster_id,
+            agent_config_sha256=agent_catalog.sha256,
+            agent_metadata=agent_catalog.roster_metadata(roster.roster_id),
+            **kwargs,
+        )
+
     def _require_phase(self, expected: Phase) -> None:
         if self.phase != expected:
             raise InvalidPhase(f"expected {expected.value}, current phase is {self.phase.value}")
@@ -144,6 +195,10 @@ class DealerGame:
     @property
     def season_result(self) -> dict[str, Any] | None:
         return deepcopy(self._season_result)
+
+    @property
+    def public_history(self) -> list[dict[str, Any]]:
+        return deepcopy(self._public_history)
 
     def _build_season_result(self, status: str) -> dict[str, Any]:
         positive = [
@@ -207,6 +262,12 @@ class DealerGame:
                 "current_rollover_cents": self._rollover_in_cents,
                 "initial_agent_count": self.initial_agent_count,
                 "active_agent_count": len(self._round_players),
+                "opponent_bankrolls_cents": {
+                    opponent_id: opponent.bankroll_cents
+                    for opponent_id, opponent in self.players.items()
+                    if opponent_id != agent_id
+                },
+                "public_history": deepcopy(self._public_history),
             }
             for agent_id, record in self._round_players.items()
         }
@@ -271,6 +332,12 @@ class DealerGame:
                 "public_messages": shared_messages,
                 "initial_agent_count": self.initial_agent_count,
                 "active_agent_count": len(self._round_players),
+                "opponent_bankrolls_cents": {
+                    opponent_id: opponent.bankroll_cents
+                    for opponent_id, opponent in self.players.items()
+                    if opponent_id != agent_id
+                },
+                "public_history": deepcopy(self._public_history),
             }
         self._public_problem_payloads = deepcopy(payloads)
         self.phase = Phase.ROUTING
@@ -425,6 +492,8 @@ class DealerGame:
             "table_mode_id": self.table_mode_id,
             "initial_agent_count": self.initial_agent_count,
             "table_config_sha256": self.table_config_sha256,
+            "agent_roster_id": self.agent_roster_id,
+            "agent_config_sha256": self.agent_config_sha256,
             "problem_id": self._agenda_round.problem_id,
             "category": self._agenda_round.category,
             "hidden_difficulty": self._agenda_round.dealer_difficulty,
@@ -444,6 +513,13 @@ class DealerGame:
             "code_version": self.code_version,
             "max_rollover_chain": self.config.max_rollover_chain,
             "season_result": deepcopy(self._season_result),
+            "table_talk": [
+                {
+                    "agent_id": record.agent_id,
+                    "message": record.public_message,
+                }
+                for record in self._round_players.values()
+            ],
             "agents": [
                 {
                     "agent_id": record.agent_id,
@@ -462,6 +538,7 @@ class DealerGame:
                     "judge": self._judge_results[record.agent_id],
                     "prize_received_cents": record.prize_received_cents,
                     "bankroll_after_round_cents": record.bankroll_after_round_cents,
+                    **self.agent_metadata.get(record.agent_id, {}),
                     **record.telemetry,
                 }
                 for record in self._round_players.values()
@@ -469,6 +546,24 @@ class DealerGame:
         }
         if self._event_log:
             self._event_log.append(event)
+        self._public_history.append(
+            {
+                "round": event["round"],
+                "category": event["category"],
+                "table_talk": deepcopy(event["table_talk"]),
+                "agents": [
+                    {
+                        "agent_id": record.agent_id,
+                        "reasoning_tier": record.router_tier,
+                        "submitted_answer": record.submitted_answer,
+                        "correct": record.correct,
+                        "prize_received_cents": record.prize_received_cents,
+                        "bankroll_after_round_cents": record.bankroll_after_round_cents,
+                    }
+                    for record in self._round_players.values()
+                ],
+            }
+        )
         self._last_event = event
         self._agenda_round = None
         self._problem = None
@@ -486,6 +581,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--tables", type=Path)
     parser.add_argument("--table")
+    parser.add_argument("--agents", type=Path)
+    parser.add_argument("--roster")
     parser.add_argument("--validate-only", action="store_true")
     return parser
 
@@ -498,6 +595,8 @@ def main() -> int:
         raise SystemExit(f"unknown strategy {args.strategy}")
     if bool(args.tables) != bool(args.table):
         raise SystemExit("--tables and --table must be supplied together")
+    if bool(args.agents) != bool(args.roster):
+        raise SystemExit("--agents and --roster must be supplied together")
     table_summary: dict[str, Any] = {}
     if args.tables:
         tables = load_table_modes(args.tables, catalog)
@@ -517,6 +616,31 @@ def main() -> int:
             "recommended_agenda_strategy": mode.recommended_agenda_strategy,
             "table_config_sha256": tables.sha256,
         }
+    agent_summary: dict[str, Any] = {}
+    if args.agents:
+        agents = load_agent_catalog(args.agents)
+        try:
+            roster = agents.get_roster(args.roster)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        if table_summary and roster.initial_agent_count != table_summary["initial_agent_count"]:
+            raise SystemExit("selected table mode and agent roster have different seat counts")
+        roster_config = GameConfig.for_table_size(roster.initial_agent_count)
+        agent_summary = {
+            "agent_roster_id": roster.roster_id,
+            "initial_agent_count": roster.initial_agent_count,
+            "dealer_contribution_cents": roster_config.dealer_contribution_cents,
+            "normal_pot_cents": (
+                roster.initial_agent_count * roster_config.entry_fee_cents
+                + roster_config.dealer_contribution_cents
+            ),
+            "recommended_agenda_strategy": roster.recommended_agenda_strategy,
+            "agent_config_sha256": agents.sha256,
+            "llm_agent_count": sum(
+                agents.profiles[seat.profile_id].runtime_kind.value == "llm"
+                for seat in roster.seats
+            ),
+        }
     if not args.validate_only:
         raise SystemExit("provider execution is injected through DealerGame; pass --validate-only")
     agenda = catalog.agendas[args.strategy]
@@ -532,6 +656,7 @@ def main() -> int:
                 "agenda_sha256": catalog.sha256,
                 "run_seed": args.seed,
                 **table_summary,
+                **agent_summary,
             },
             sort_keys=True,
         )

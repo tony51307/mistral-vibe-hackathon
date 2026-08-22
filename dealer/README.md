@@ -18,7 +18,8 @@ game/
   rotation.py            fixed-agenda problem cursor
 data/                     canonical V1 bank and five agendas
 docs/                     source implementation guide
-tables/                   2-to-8-agent economy instructions and presets
+agents/                   LLM/deterministic profiles and 6–10-seat rosters
+tables/                   2-to-10-agent economy instructions and presets
 tests/                    judge, economy, loader, and visibility tests
 ```
 
@@ -81,13 +82,15 @@ Each router is called with a public payload and returns `{"reasoning_tier": "med
 
 See [tables/README.md](tables/README.md) for the heads-up, baseline, demo, and tournament configurations. Table modes derive a fixed season contribution of `$3 × initial agents`; the direct `player_ids` constructor remains available for isolated tests and custom hosts.
 
+See [agents/README.md](agents/README.md) for LLM profile loading, environment-only Mistral configuration, bluff/listening policies, and the `social_6` through `social_10` rosters.
+
 ## Invariants
 
 - The problem bank is authoritative. Agenda category, difficulty, and guessability must match it exactly.
 - Category reveal omits problem identity; problem reveal is built from a three-field public whitelist.
 - The five hidden metadata/answer fields are covered by recursive visibility tests.
 - Entry and pot amounts use integer cents. Reasoning spend is burned, never added to the pot.
-- Supported table modes use 2–8 initial agents and freeze `H = $3 × N0` for the season.
+- Supported table modes use 2–10 initial agents and freeze `H = $3 × N0` for the season.
 - Split remainders roll forward instead of being assigned randomly.
 - Show Hand stakes the remaining bankroll and forces a zero-cost base answer.
 - A V1 edge case exists when bankroll equals the entry fee exactly: the player can legally enter but cannot afford the priced `none` tier. The core forces a zero-cost base answer and logs `router_fallback=true`, preserving both the frozen entry rule and the no-negative-bankroll invariant.

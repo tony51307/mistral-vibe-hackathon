@@ -1,6 +1,6 @@
 # Configuring a dealer table
 
-`table_modes_v1.yaml` is the machine-readable setup for the supported 2-to-8-agent tables. `table_size.md` is the full economic rationale and remains the design authority.
+`table_modes_v1.yaml` is the machine-readable setup for the supported 2-to-10-agent tables. `table_size.md` contains the original 2-to-8 economic rationale; the 9–10-agent extension applies the same linear rule.
 
 The V1 constants stay fixed at `$80` starting bankroll, `$10` entry, and the existing reasoning-price ladder. Only the dealer contribution is derived when the season is created:
 
@@ -17,7 +17,10 @@ Eliminations do not reduce `H` later in the season.
 | `heads_up` | 2 | $6 | $26 | 1, balanced ramp |
 | `baseline` | 4 | $12 | $52 | 5, seeded benchmark |
 | `demo` | 6 | $18 | $78 | 3, jackpot pressure |
+| `social_lab` | 7 | $21 | $91 | 3, jackpot pressure |
 | `tournament` | 8 | $24 | $104 | 3, jackpot pressure |
+| `social_stress` | 9 | $27 | $117 | 3, jackpot pressure |
+| `ecology` | 10 | $30 | $130 | 3, jackpot pressure |
 
 Validate a mode with the dealer CLI:
 
@@ -67,6 +70,6 @@ game = DealerGame.from_table_mode(
 
 ## Add a custom table mode
 
-Copy one item in `table_modes_v1.yaml`, give it a unique `id`, and set `initial_agent_count` between 2 and 8. Choose an existing agenda strategy from 1 through 5 and document at least one use case.
+Copy one item in `table_modes_v1.yaml`, give it a unique `id`, and set `initial_agent_count` between 2 and 10. Choose an existing agenda strategy from 1 through 5 and document at least one use case.
 
 Do not add an `H` override to a mode. The loader rejects changes to the frozen economy contract, and the dealer derives `H` from the initial count exactly once.

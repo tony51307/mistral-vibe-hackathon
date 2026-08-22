@@ -16,8 +16,8 @@ TABLE_PATH = ROOT / "tables" / "table_modes_v1.yaml"
 
 
 class TableConfigurationTests(unittest.TestCase):
-    def test_v1_contribution_scales_from_two_through_eight_agents(self):
-        for count in range(2, 9):
+    def test_v1_contribution_scales_from_two_through_ten_agents(self):
+        for count in range(2, 11):
             with self.subTest(count=count):
                 config = GameConfig.for_table_size(count)
                 self.assertEqual(config.dealer_contribution_cents, 300 * count)
@@ -27,9 +27,9 @@ class TableConfigurationTests(unittest.TestCase):
                 )
 
     def test_out_of_range_table_sizes_are_rejected(self):
-        for count in (1, 9):
+        for count in (1, 11):
             with self.subTest(count=count):
-                with self.assertRaisesRegex(ValueError, "between 2 and 8"):
+                with self.assertRaisesRegex(ValueError, "between 2 and 10"):
                     GameConfig.for_table_size(count)
 
     def test_canonical_modes_load_and_reference_existing_agendas(self):
@@ -37,7 +37,15 @@ class TableConfigurationTests(unittest.TestCase):
         self.assertEqual(tables.default_mode, "baseline")
         self.assertEqual(
             {mode_id: mode.initial_agent_count for mode_id, mode in tables.modes.items()},
-            {"heads_up": 2, "baseline": 4, "demo": 6, "tournament": 8},
+            {
+                "heads_up": 2,
+                "baseline": 4,
+                "demo": 6,
+                "tournament": 8,
+                "social_lab": 7,
+                "social_stress": 9,
+                "ecology": 10,
+            },
         )
 
     def test_changed_economy_contract_is_rejected(self):

@@ -197,7 +197,7 @@ def load_table_modes(
     economy = _require_mapping(document.get("economy"), "economy")
     expected_economy = {
         "minimum_agents": 2,
-        "maximum_agents": 8,
+        "maximum_agents": 10,
         "starting_bankroll_cents": 8_000,
         "entry_fee_cents": 1_000,
         "dealer_contribution_per_initial_agent_cents": 300,
@@ -230,9 +230,9 @@ def load_table_modes(
             raise DataValidationError(f"duplicate table mode id: {mode_id}")
         name = _require_nonempty_string(item.get("name"), f"table mode {mode_id}.name")
         count = item.get("initial_agent_count")
-        if isinstance(count, bool) or not isinstance(count, int) or not 2 <= count <= 8:
+        if isinstance(count, bool) or not isinstance(count, int) or not 2 <= count <= 10:
             raise DataValidationError(
-                f"table mode {mode_id}: initial_agent_count must be between 2 and 8"
+                f"table mode {mode_id}: initial_agent_count must be between 2 and 10"
             )
         strategy = item.get("recommended_agenda_strategy")
         if isinstance(strategy, bool) or not isinstance(strategy, int) or strategy <= 0:

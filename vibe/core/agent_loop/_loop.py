@@ -90,6 +90,7 @@ from vibe.core.reasoning import (
     ReasoningRoutingDecision,
     build_probe_messages,
     clamp_thinking_level,
+    is_high_risk_request,
     is_trivial_request,
     route_probe_decisions,
 )
@@ -2567,6 +2568,14 @@ class AgentLoop(AgentLoopHooksMixin):  # noqa: PLR0904
         if model is None or model.thinking != "auto":
             return None
         router_config = self.config.reasoning_router
+        if is_high_risk_request(request):
+            return ReasoningRoutingDecision(
+                level=clamp_thinking_level(
+                    "high", minimum=router_config.minimum, maximum=router_config.maximum
+                ),
+                stability=1,
+                reason="high_risk",
+            )
         if is_trivial_request(request):
             return ReasoningRoutingDecision(
                 level=clamp_thinking_level(

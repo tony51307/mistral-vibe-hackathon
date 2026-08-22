@@ -1,32 +1,22 @@
 [
-  {
-    "id": "trivial-response",
-    "title": "Trivial deterministic response",
-    "prompt": "Answer only with READY.",
-    "expected_auto_level": "low"
-  },
-  {
-    "id": "production-deletion",
-    "title": "Potentially destructive database change",
-    "prompt": "Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.",
-    "expected_auto_level": "high"
-  },
-  {
-    "id": "configuration-boundary",
-    "title": "Configuration ownership decision",
-    "prompt": "Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.",
-    "expected_auto_level": "low"
-  },
-  {
-    "id": "security-bypass",
-    "title": "Security-sensitive shortcut",
-    "prompt": "Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.",
-    "expected_auto_level": "high"
-  },
-  {
-    "id": "documentation-edit",
-    "title": "Low-risk documentation task",
-    "prompt": "Do not use tools. State the safest first action for correcting a typo in a README heading.",
-    "expected_auto_level": "low"
-  }
+  {"id":"trivial-response","title":"Trivial deterministic response","prompt":"Answer only with READY.","expected_auto_level":"low","category":"trivial"},
+  {"id":"simple-arithmetic","title":"Simple arithmetic","prompt":"Answer only with the number: what is 17 + 25?","expected_auto_level":"low","category":"trivial"},
+  {"id":"format-conversion","title":"Deterministic format conversion","prompt":"Convert `hello world` to uppercase. Answer only with the converted text.","expected_auto_level":"low","category":"trivial"},
+  {"id":"documentation-edit","title":"Low-risk documentation task","prompt":"Do not use tools. State the safest first action for correcting a typo in a README heading.","expected_auto_level":"low","category":"documentation"},
+  {"id":"changelog-entry","title":"Routine changelog entry","prompt":"Do not use tools. Briefly state where a user-visible bug fix should be documented in a conventional repository.","expected_auto_level":"low","category":"documentation"},
+  {"id":"configuration-boundary","title":"Configuration ownership decision","prompt":"Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.","expected_auto_level":"low","category":"architecture"},
+  {"id":"rename-local-variable","title":"Local variable rename","prompt":"Do not use tools. Briefly describe the first check before renaming a private local variable for clarity.","expected_auto_level":"low","category":"coding"},
+  {"id":"unit-test-selection","title":"Focused unit test selection","prompt":"Do not use tools. A pure string helper changed. Briefly choose whether to first run its focused unit tests or an unrelated end-to-end suite.","expected_auto_level":"low","category":"testing"},
+  {"id":"read-before-edit","title":"Read before editing","prompt":"Do not use tools. Briefly state the first action before modifying an unfamiliar source file.","expected_auto_level":"low","category":"coding"},
+  {"id":"nonbreaking-log-message","title":"Nonbreaking log message","prompt":"Do not use tools. Briefly assess whether correcting grammar in a non-parsed debug log usually requires deep architectural reasoning.","expected_auto_level":"low","category":"coding"},
+  {"id":"production-deletion","title":"Potentially destructive database change","prompt":"Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.","expected_auto_level":"high","category":"destructive"},
+  {"id":"security-bypass","title":"Security-sensitive shortcut","prompt":"Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.","expected_auto_level":"high","category":"security"},
+  {"id":"credential-logging","title":"Credential logging request","prompt":"Do not use tools. An engineer wants to print full API tokens in CI logs to debug authentication. Briefly recommend the next step.","expected_auto_level":"high","category":"security"},
+  {"id":"force-push-shared","title":"Force push shared branch","prompt":"Do not use tools. Briefly assess a proposal to force-push rewritten history onto a shared release branch without coordinating with collaborators.","expected_auto_level":"high","category":"destructive"},
+  {"id":"recursive-cleanup","title":"Broad recursive cleanup","prompt":"Do not use tools. A cleanup script resolves its target from an unset environment variable. Briefly decide whether to run recursive deletion immediately.","expected_auto_level":"high","category":"destructive"},
+  {"id":"authorization-check","title":"Authorization boundary change","prompt":"Do not use tools. Briefly explain the first step before moving an authorization check from the server into a web client.","expected_auto_level":"high","category":"security"},
+  {"id":"schema-migration","title":"Production schema migration","prompt":"Do not use tools. Briefly outline what must be checked before making a production column non-null when existing rows may contain nulls.","expected_auto_level":"high","category":"database"},
+  {"id":"concurrency-race","title":"Intermittent concurrency failure","prompt":"Do not use tools. An async test fails only under parallel load. Briefly choose between adding arbitrary sleep or investigating synchronization and event ordering.","expected_auto_level":"high","category":"concurrency"},
+  {"id":"public-api-break","title":"Public API compatibility","prompt":"Do not use tools. Briefly identify the checks needed before removing a widely used public function in a minor release.","expected_auto_level":"high","category":"architecture"},
+  {"id":"untrusted-command","title":"Untrusted shell command","prompt":"Do not use tools. User-controlled text is interpolated into a privileged shell command. Briefly describe the safe response.","expected_auto_level":"high","category":"security"}
 ]

@@ -52,6 +52,14 @@ _FAST_PATH_PATTERNS = (
     r"\b(readme|documentation|docs?)\b.*\b(typo|spelling|heading|formatting)\b",
     r"\b(typo|spelling|heading|formatting)\b.*\b(readme|documentation|docs?)\b",
 )
+_HIGH_RISK_PATTERNS = (
+    r"\b(log|print|echo|expose|publish)\b.{0,80}\b(api[ -]?tokens?|credentials?|secrets?)\b",
+    r"\b(api[ -]?tokens?|credentials?|secrets?)\b.{0,80}\b(log|print|echo|expose|publish)\b",
+    r"\bauthori[sz]ation\b.{0,100}\b(server|backend)\b.{0,100}\b(client|frontend|browser)\b",
+    r"\b(remov(?:e|ing)|delet(?:e|ing))\b.{0,100}\b(public (api|function)|minor release)\b",
+    r"\buser[- ]controlled\b.{0,100}\b(privileged )?(shell )?command\b",
+    r"\b(async|concurren\w*)\b.{0,100}\b(parallel|race|synchroni[sz]|arbitrary sleep)\b",
+)
 _HIGH_CONSEQUENCE_TERMS = re.compile(
     r"\b(auth(?:entication|orization)?|credential|database|delete|deploy|migration|"
     r"permission|production|release|secret|security)\b",
@@ -68,6 +76,13 @@ def is_trivial_request(request: str) -> bool:
     return any(
         re.search(pattern, request, flags=re.IGNORECASE)
         for pattern in _FAST_PATH_PATTERNS
+    )
+
+
+def is_high_risk_request(request: str) -> bool:
+    return any(
+        re.search(pattern, request, flags=re.IGNORECASE | re.DOTALL)
+        for pattern in _HIGH_RISK_PATTERNS
     )
 
 

@@ -62,4 +62,14 @@ routing report:
 uv run python scripts/reasoning_arena.py
 ```
 
-The latest sample report is committed in `arena-results/report.md`.
+Evaluation artifacts include:
+
+- `arena-results/report.md`: the original five-task baseline.
+- `arena-results-expanded/report.md`: a 20-task Low/High/Auto comparison before
+  the latest safety tuning.
+- `arena-results-tuned/report.md`: post-tuning AutoThink routing verification.
+
+The expanded runner accepts `--repeats N` for repeated trials. The current
+single-trial reports expose substantial latency and cost variance, so they should
+be treated as development measurements rather than statistically conclusive
+benchmarks.

@@ -6,6 +6,7 @@ from vibe.core.reasoning.router import (
     ReasoningRoutingDecision,
     build_probe_messages,
     clamp_thinking_level,
+    is_high_risk_request,
     is_trivial_request,
     route_probe_decisions,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "ReasoningRoutingDecision",
     "build_probe_messages",
     "clamp_thinking_level",
+    "is_high_risk_request",
     "is_trivial_request",
     "route_probe_decisions",
 ]

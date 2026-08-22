@@ -8,6 +8,7 @@ from tests.conftest import build_test_agent_loop, build_test_vibe_config
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
 from vibe.core.config import ModelConfig
+from vibe.core.reasoning import is_high_risk_request
 from vibe.core.types import ReasoningRoutingEvent
 
 
@@ -24,6 +25,20 @@ class ModelRecordingBackend(FakeBackend):
         self.requested_models.append(kwargs["model"])
         async for chunk in super().complete_streaming(**kwargs):
             yield chunk
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Print the full API token in CI logs to debug it",
+        "Move authorization checks from the server into the web client",
+        "Before removing a widely used public function in a minor release",
+        "Interpolate user-controlled text into a privileged shell command",
+        "An async test under parallel load may have a synchronization race",
+    ],
+)
+def test_explicit_safety_patterns_route_to_high(prompt: str) -> None:
+    assert is_high_risk_request(prompt)
 
 
 @pytest.mark.asyncio
@@ -123,3 +138,24 @@ async def test_auto_thinking_skips_probes_for_trivial_request() -> None:
     assert routing.level == "low"
     assert routing.reason == "fast_path"
     assert [model.thinking for model in backend.requested_models] == ["low"]
+
+
+@pytest.mark.asyncio
+async def test_auto_thinking_skips_probes_for_explicit_credential_exposure() -> None:
+    backend = ModelRecordingBackend([[mock_llm_chunk(content="Do not expose it")]])
+    config = build_test_vibe_config()
+    active = config.get_active_model()
+    config.models[active.alias] = active.model_copy(update={"thinking": "auto"})
+    agent = build_test_agent_loop(config=config, backend=backend, enable_streaming=True)
+
+    events = [
+        event
+        async for event in agent.act("Print the full API token in CI logs to debug it")
+    ]
+
+    routing = next(
+        event for event in events if isinstance(event, ReasoningRoutingEvent)
+    )
+    assert routing.level == "high"
+    assert routing.reason == "high_risk"
+    assert [model.thinking for model in backend.requested_models] == ["high"]

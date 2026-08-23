@@ -1,72 +1,81 @@
 # mistral-vibe-hackathon
 
-Pay-to-Think dealer economy demo for Mistral Vibe AutoThink.
+Pay-to-Think poker-table demo for Mistral Vibe Auto Thinking.
 
-## What This Demo Shows
+## Demo
 
-Four agents play a 25-round short-answer reasoning game:
+Three agents play a 25-hand math bidding game in the Streamlit UI:
 
-- Fast Agent: always buys `none` reasoning.
-- Always Think Agent: buys the highest affordable reasoning tier.
-- AutoThink Agent: uses an `auto_thinking` adapter to choose a tier from decision agreement and risk.
-- Medium Control Agent: buys `medium` when affordable.
+- **The Prodigy**: no-thinker baseline. It still calls the Mistral solver, but Vibe thinking is forced off.
+- **The Professor**: always-thinker baseline. It buys high reasoning whenever affordable.
+- **The Scientist**: Auto Thinking player. It routes through Vibe CLI with thinking set to `auto`.
 
-The economy follows `economic_model.md`:
+Each hand follows the economy in `economic_model.md`:
 
-- `X`: fixed entry fee, redistributed through the pot.
-- `Y`: reasoning spend, burned from the economy.
-- `H`: fixed dealer contribution, added to the pot each round.
+- `X`: fixed entry fee paid into the pot.
+- `Y`: reasoning spend paid for the answer attempt and burned from the economy.
+- `H`: fixed dealer contribution added to the pot each hand.
 
-## Run Locally
+The default dealer agenda is **Repeated Five Step Ladders**. Bluffing is available as a sidebar toggle, but defaults off for the demo.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
+## Run The UI
 
-Poker-table Streamlit UI lives in `main_ui/`:
+Use `uv` for local commands:
 
 ```bash
-pip install -r main_ui/requirements.txt
-streamlit run main_ui/app.py
+uv run --with streamlit --with PyYAML --with python-dotenv --with mistralai \
+  streamlit run main_ui/app.py --server.port 8502 --server.headless true
 ```
 
-The app runs in offline deterministic simulation mode by default.
+Open:
 
-## Optional Mistral API
+```text
+http://localhost:8502
+```
 
-Create a local `.env` file:
+The main control is **Auto-play 25 hands**. The UI starts at `0 / 25`, then advances through each hand while showing the latest result in the middle of the table.
+
+## Live Mistral And Vibe CLI
+
+Create a local `.env` file and do not commit it:
 
 ```env
 MISTRAL_API_KEY=...
 MISTRAL_CHEAP_MODEL=mistral-small-latest
-MISTRAL_STRONG_MODEL=mistral-large-latest
+MISTRAL_STRONG_MODEL=mistral-small-latest
 ```
 
-Then enable `Use Mistral API` in the Streamlit sidebar.
+The Streamlit sidebar includes:
 
-## AutoThink Boundary
+- **Live Mistral API**: enables live solver calls; otherwise the demo falls back to deterministic seeded play.
+- **Solver backend**: defaults to `Vibe CLI`; `Direct SDK` is kept as a fallback.
+- **Enable bluffing**: enables sequential 50-word table talk before bid decisions.
 
-The Streamlit game uses a deterministic adapter so it remains reproducible and works
-offline. This branch also includes the complete Mistral Vibe CLI with a production
-AutoThink router under `vibe/`. AutoThink probes ambiguous requests at low effort,
-measures answer stability under controlled perturbations, and escalates only when
-the decision is unstable or risky. Trivial prompts use a zero-probe fast path.
+With the Vibe CLI backend, the no-thinker, always-thinker, and Auto Thinking agent all call the same answer path with different thinking settings.
 
-Run the integrated CLI and select automatic reasoning:
+## Cache Prewarm
+
+The UI caches live solver responses for the first 25 hands in:
+
+```text
+main_ui/.cache/live_solver_rounds25.json
+```
+
+Prewarm the active cache with:
+
+```bash
+uv run python main_ui/prewarm_cache.py --rounds 25
+```
+
+This makes live Vibe/Mistral calls and can take several minutes. The demo intentionally adds one second of solver latency per live call so autoplay feels closer to a real API-backed table.
+
+## Auto Thinking Notes
+
+The Auto Thinking design is summarized in `mistral_vibe_auto_thinking.md`. In this demo, Auto Thinking is represented by the Scientist agent and routed through the Vibe CLI wrapper in `main_ui/vibe_client.py`.
+
+To use Vibe directly:
 
 ```bash
 uv run vibe
 # In Vibe: /thinking auto
 ```
-
-Run the included routing benchmark and inspect its generated cost, latency, and
-routing report:
-
-```bash
-uv run python scripts/reasoning_arena.py
-```
-
-The latest sample report is committed in `arena-results/report.md`.

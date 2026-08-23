@@ -6,6 +6,7 @@ import base64
 import html
 from pathlib import Path
 import sys
+import time
 
 import streamlit as st
 
@@ -19,6 +20,7 @@ if sys.path[:1] != [str(UI_ROOT)]:
     sys.path.insert(0, str(UI_ROOT))
 
 from mistral_client import MistralClient
+from vibe_client import VibeCliClient
 
 
 st.set_page_config(page_title="Pay-to-Think Table", layout="wide")
@@ -51,7 +53,7 @@ CSS = """
 
 .room {
   position: relative;
-  height: 900px;
+  height: 720px;
   background:
     radial-gradient(circle at 50% 45%, #3a2818 0%, #1a100a 75%);
   border-radius: 18px;
@@ -62,14 +64,14 @@ CSS = """
 .dealer-cat {
   position: absolute;
   left: 50%;
-  top: 18%;
+  top: 15%;
   transform: translateX(-50%);
   z-index: 5;
   text-align: center;
 }
 .dealer-cat img, .dealer-cat .seat-avatar {
-  width: 148px;
-  height: 148px;
+  width: 118px;
+  height: 118px;
   border-radius: 50%;
   object-fit: cover;
   object-position: 50% 18%;
@@ -87,16 +89,16 @@ CSS = """
 .table {
   position: absolute;
   left: 50%;
-  top: 56%;
-  width: min(520px, 70%);
-  height: min(500px, 72%);
+  top: 55%;
+  width: min(420px, 64%);
+  height: min(400px, 66%);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 42%, #2a8a4a 0%, #145c2e 55%, #0a3318 100%);
-  border: 18px solid #6b3e14;
+  border: 14px solid #6b3e14;
   box-shadow:
-    inset 0 0 0 8px #d4af37,
+    inset 0 0 0 6px #d4af37,
     inset 0 0 70px rgba(0,0,0,.35),
     0 18px 40px rgba(0,0,0,.45);
 }
@@ -121,20 +123,20 @@ CSS = """
   color: #f5d76e;
   border: 2px dashed #f5d76e;
   border-radius: 999px;
-  padding: 6px 18px;
+  padding: 5px 14px;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 17px;
 }
 .problem-card {
   margin: 10px auto 0;
   background: #fffaf0;
   color: #1a1208;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   font-family: 'Libre Baskerville', serif;
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1.4;
-  max-height: 210px;
+  max-height: 160px;
   overflow: auto;
 }
 .problem-meta {
@@ -147,11 +149,11 @@ CSS = """
 }
 .seat {
   position: absolute;
-  width: 214px;
+  width: 174px;
   background: #140e0a;
   border: 2px solid #c9a227;
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 9px 11px;
   z-index: 3;
   box-shadow: 0 8px 18px rgba(0,0,0,.4);
 }
@@ -164,26 +166,26 @@ CSS = """
 }
 .seat-head {
   display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 10px;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
   align-items: center;
 }
 .seat-avatar {
-  width: 76px;
-  height: 76px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
   object-position: 50% 18%;
   border: 1px solid #f5d76e;
 }
-.seat-name { font-weight: 700; font-size: 16px; line-height: 1.15; }
+.seat-name { font-weight: 700; font-size: 14px; line-height: 1.15; }
 .seat-role {
   margin-top: 4px;
   color: #f5d76e;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
 }
-.seat-stack { color: #b7e4c7; font-size: 16px; font-weight: 700; margin: 8px 0 4px; }
+.seat-stack { color: #b7e4c7; font-size: 13px; font-weight: 700; margin: 6px 0 4px; }
 .seat-action {
   display: inline-block;
   background: #c9a227;
@@ -196,22 +198,22 @@ CSS = """
 .seat-ans {
   margin-top: 8px;
   font-family: 'Libre Baskerville', serif;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.35;
 }
 .seat-ans .mark { font-family: 'IBM Plex Sans', sans-serif; font-weight: 800; }
 .seat-ans .mark.ok { color: #7dcea0; }
 .seat-ans .mark.no { color: #f5a3a3; }
-.seat-think { font-size: 15px; color: #ddd; margin-top: 4px; }
+.seat-think { font-size: 12px; color: #ddd; margin-top: 4px; }
 .dealer-answer {
-  margin-top: 12px;
+  margin-top: 10px;
   display: inline-block;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: #050505;
   background: #ffe08a;
   font-weight: 900;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 4px;
 }
 .rail {
@@ -281,8 +283,10 @@ CSS = """
 def init_state(config: GameConfig) -> None:
     st.session_state.game = new_game(config)
     st.session_state.client = MistralClient()
+    st.session_state.vibe_client = VibeCliClient()
     st.session_state.last = None
     st.session_state.round_error = None
+    st.session_state.autoplay = False
 
 
 def current_game() -> GameState:
@@ -291,25 +295,26 @@ def current_game() -> GameState:
 
 def run_one() -> None:
     try:
-        st.session_state.last = play_round(current_game(), st.session_state.client)
+        game = current_game()
+        solver_backend = getattr(game.config, "solver_backend", "vibe_cli")
+        client = (
+            st.session_state.vibe_client
+            if solver_backend == "vibe_cli"
+            else st.session_state.client
+        )
+        st.session_state.last = play_round(game, client)
         st.session_state.round_error = None
     except Exception as exc:
         st.session_state.round_error = str(exc)
         st.session_state.last = st.session_state.get("last")
 
 
-def run_all() -> None:
-    g = current_game()
-    while not g.finished:
-        run_one()
-        if st.session_state.get("round_error"):
-            break
-
-
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     if "game" not in st.session_state:
         init_state(GameConfig())
+    if "autoplay" not in st.session_state:
+        st.session_state.autoplay = False
 
     st.title("Pay-to-Think Table")
     st.caption(PITCH)
@@ -339,13 +344,26 @@ def main() -> None:
         seed = st.number_input("Run seed", 1, 999999, 260822, 1)
         bluffing = st.toggle("Enable bluffing", value=current.config.enable_bluffing)
         live = st.toggle("Live Mistral API", value=current.config.use_live_api)
+        solver_backend = st.selectbox(
+            "Solver backend",
+            options=["vibe_cli", "direct_sdk"],
+            index=["vibe_cli", "direct_sdk"].index(
+                getattr(current.config, "solver_backend", "vibe_cli")
+            ),
+            format_func=lambda value: "Vibe CLI" if value == "vibe_cli" else "Direct SDK",
+        )
         show_traces = st.toggle("Show dealer traces", value=True)
         st.caption("Reasoning prices Y: none $1, low $2, medium $3, high $5, xhigh $9.")
-        client = st.session_state.get("client")
-        if client is None or not hasattr(client, "available"):
-            client = MistralClient()
-            st.session_state.client = client
-        if live and not client.available:
+        direct_client = st.session_state.get("client")
+        if direct_client is None or not hasattr(direct_client, "available"):
+            direct_client = MistralClient()
+            st.session_state.client = direct_client
+        vibe_client = st.session_state.get("vibe_client")
+        if vibe_client is None or not hasattr(vibe_client, "available"):
+            vibe_client = VibeCliClient()
+            st.session_state.vibe_client = vibe_client
+        active_client = vibe_client if solver_backend == "vibe_cli" else direct_client
+        if live and not active_client.available:
             st.warning("No MISTRAL_API_KEY. Seeded chips still play.")
         if st.button("New table", width="stretch"):
             init_state(
@@ -358,54 +376,44 @@ def main() -> None:
                     strategy_number=int(strategy),
                     seed=int(seed),
                     use_live_api=live,
+                    solver_backend=solver_backend,
                     enable_bluffing=bluffing,
                 )
             )
             st.rerun()
 
     game = current_game()
+    autoplay_active = bool(st.session_state.get("autoplay")) and not game.finished
+    if autoplay_active and not st.session_state.get("round_error"):
+        run_one()
+        game = current_game()
+        if game.finished or st.session_state.get("round_error"):
+            st.session_state.autoplay = False
+
     a, b, c, d = st.columns(4)
-    a.metric("Hand", f"{min(game.round_index + (0 if game.finished else 1), game.config.n_rounds)} / {game.config.n_rounds}")
+    a.metric("Hand", f"{min(game.round_index, game.config.n_rounds)} / {game.config.n_rounds}")
     b.metric("Rollover", game.prize_pool)
     c.metric("Entry X", game.config.entrance_fee)
     d.metric("Dealer H", game.config.dealer_contribution)
 
-    x, y, _ = st.columns(3)
-    if x.button("Deal next hand", type="primary", disabled=game.finished):
-        run_one()
-    if y.button("Run 10 hands", disabled=game.finished):
-        run_all()
+    if st.button("Auto-play 25 hands", type="primary", disabled=game.finished or autoplay_active):
+        st.session_state.autoplay = True
+        st.rerun()
 
     last = st.session_state.get("last")
     if st.session_state.get("round_error"):
         st.error(st.session_state.round_error)
-    if last is None and not game.finished and not st.session_state.get("round_error"):
-        run_one()
-        last = st.session_state.last
-        st.rerun()
-
     _poker_table(last if last and last.get("round") else None, game)
 
-    st.markdown('<div class="below-table"></div>', unsafe_allow_html=True)
-    talk, rail = st.columns([1.35, 1])
-    with talk:
-        if last and last.get("round") and game.config.enable_bluffing:
-            _bluff_log(last)
-        elif last and last.get("round"):
-            st.markdown('<div class="talk-log"><h3>Sequential bluffs</h3><p>Bluffing is off for this table.</p></div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="talk-log"><h3>Table talk</h3><p>Waiting for category reveal.</p></div>', unsafe_allow_html=True)
-    with rail:
-        if last and last.get("round"):
-            _answer_rail(last)
-        else:
-            st.markdown('<div class="rail"><h3>Dealer rail</h3><p>Waiting for a hand.</p></div>', unsafe_allow_html=True)
     if show_traces and last and last.get("round"):
         _dealer_panel(last)
 
     _scoreboard(game)
     if game.finished:
         _final(game)
+    if st.session_state.get("autoplay") and not game.finished and not st.session_state.get("round_error"):
+        time.sleep(0.35)
+        st.rerun()
 
 
 def _names(game: GameState) -> tuple[str, ...]:
@@ -520,7 +528,7 @@ def _poker_table(record: dict | None, game: GameState) -> None:
         ann = record["announcement"]
         q = html.escape(record["problem"]["question"])
         pot = record["prize"]
-        meta = f"Hand {record['round']} · {html.escape(ann['category'])}"
+        meta = f"Hand {record['round']}"
         if record.get("winners"):
             footer = f"Showdown · answer {html.escape(str(record['problem']['answer']))}"
         else:

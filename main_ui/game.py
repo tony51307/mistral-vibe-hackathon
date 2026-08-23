@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
 from typing import Any, Mapping
 
 from metrics import attach_bankroll, empty_stats, summary, update_after_round
@@ -39,6 +40,12 @@ AGENDA_PATHS = (
 
 DEFAULT_ROSTER_ID = "social_3"
 DEFAULT_ENTRY_FEE = 15
+DEFAULT_STRATEGY_NUMBER = 10
+DEFAULT_SOLVER_BACKEND = "vibe_cli"
+DEFAULT_ROUNDS = 25
+DEMO_SOLVER_LATENCY_SECONDS = 1.0
+LIVE_SOLVER_CACHE_ROUNDS = 25
+LIVE_SOLVER_CACHE_PATH = REPO_ROOT / "main_ui" / ".cache" / "live_solver_rounds25.json"
 
 TIER_PRICE = {
     "none": 1,
@@ -102,10 +109,11 @@ class GameConfig:
     entrance_fee: int = DEFAULT_ENTRY_FEE
     dealer_contribution: int = 12
     agent_roster: str = DEFAULT_ROSTER_ID
-    n_rounds: int = 25
-    strategy_number: int = 5
+    n_rounds: int = DEFAULT_ROUNDS
+    strategy_number: int = DEFAULT_STRATEGY_NUMBER
     seed: int = 260822
     use_live_api: bool = True
+    solver_backend: str = DEFAULT_SOLVER_BACKEND
     enable_bluffing: bool = False
 
 
@@ -143,6 +151,7 @@ def new_game(config: GameConfig) -> GameState:
     dealer_config = DealerGameConfig.for_table_size(
         roster.initial_agent_count,
         entry_fee_cents=cents(config.entrance_fee),
+        season_rounds=config.n_rounds,
     )
     dealer = DealerGame(
         player_ids=roster.player_ids(),
@@ -229,6 +238,7 @@ def play_round(state: GameState, client: Any) -> dict[str, Any]:
             agent_id,
             dealer.problem_bank.problems[payload["problem_id"]],
             client if state.config.use_live_api else None,
+            state.policies.get(agent_id, "dynamic"),
         )
         for agent_id, payload in problem_payloads.items()
     }
@@ -360,12 +370,12 @@ def _dynamic_tier(payload: Mapping[str, Any], round_number: int) -> str:
     return "low" if score % 4 else "none"
 
 
-def _solver(agent_id: str, problem: dict[str, Any], client: Any | None):
+def _solver(agent_id: str, problem: dict[str, Any], client: Any | None, policy: str):
     def solve(payload: Mapping[str, Any]) -> dict[str, Any]:
         tier = str(payload["reasoning_tier"])
         if client is not None and getattr(client, "available", False):
             try:
-                return _live_solver_response(client, payload, tier)
+                return _live_solver_response(client, payload, tier, agent_id, policy)
             except RuntimeError as exc:
                 return _offline_solver_response(
                     agent_id,
@@ -400,17 +410,39 @@ def _offline_solver_response(
     return response
 
 
-def _live_solver_response(client: Any, payload: Mapping[str, Any], tier: str) -> dict[str, Any]:
+def _live_solver_response(
+    client: Any, payload: Mapping[str, Any], tier: str, agent_id: str, policy: str
+) -> dict[str, Any]:
+    time.sleep(DEMO_SOLVER_LATENCY_SECONDS)
     prompt = str(payload["prompt_markdown"])
+    if hasattr(client, "solve_json"):
+        return _vibe_solver_response(client, payload, tier, agent_id, policy, prompt)
     tier_note = f"\n\nAllowed reasoning tier bid: {tier}"
     strong = tier in {"medium", "high", "xhigh"}
+    system = DEEP_SYSTEM if strong else CHEAP_SYSTEM
+    user = deep_user(f"{prompt}{tier_note}") if strong else cheap_user(f"{prompt}{tier_note}")
+    reasoning_effort = REASONING_EFFORT_BY_TIER[tier]
+    max_tokens = 256
+    cache_key = _live_solver_cache_key(
+        client=client,
+        payload=payload,
+        agent_id=agent_id,
+        tier=tier,
+        strong=strong,
+        system=system,
+        user=user,
+        reasoning_effort=reasoning_effort,
+        max_tokens=max_tokens,
+    )
+    if cache_key and (cached := _read_live_solver_cache().get(cache_key)):
+        return dict(cached)
     data = client.chat_json(
-        system=DEEP_SYSTEM if strong else CHEAP_SYSTEM,
-        user=deep_user(f"{prompt}{tier_note}") if strong else cheap_user(f"{prompt}{tier_note}"),
+        system=system,
+        user=user,
         strong=strong,
         temperature=0.1 if strong else 0.0,
-        reasoning_effort=REASONING_EFFORT_BY_TIER[tier],
-        max_tokens=256,
+        reasoning_effort=reasoning_effort,
+        max_tokens=max_tokens,
     )
     answer = _extract_live_answer(data)
     usage = data.get("_usage") if isinstance(data.get("_usage"), dict) else {}
@@ -423,7 +455,116 @@ def _live_solver_response(client: Any, payload: Mapping[str, Any], tier: str) ->
         response["actual_input_tokens"] = usage["prompt_tokens"]
     if usage.get("completion_tokens") is not None:
         response["actual_output_tokens"] = usage["completion_tokens"]
+    if cache_key:
+        _write_live_solver_cache(cache_key, response)
     return response
+
+
+def _vibe_solver_response(
+    client: Any,
+    payload: Mapping[str, Any],
+    tier: str,
+    agent_id: str,
+    policy: str,
+    prompt: str,
+) -> dict[str, Any]:
+    max_tokens = 512
+    cache_key = _live_solver_cache_key(
+        client=client,
+        payload=payload,
+        agent_id=agent_id,
+        tier=tier,
+        strong=True,
+        system="vibe-cli",
+        user=f"{policy}\n{prompt}",
+        reasoning_effort=f"vibe:{policy}",
+        max_tokens=max_tokens,
+    )
+    if cache_key and (cached := _read_live_solver_cache().get(cache_key)):
+        return dict(cached)
+    data = client.solve_json(prompt=prompt, tier=tier, policy=policy, max_tokens=max_tokens)
+    answer = _extract_live_answer(data)
+    response: dict[str, Any] = {
+        "answer": answer,
+        "model": str(data.get("_model", "vibe-cli")),
+        "api_reasoning_configuration": str(data.get("_vibe_thinking", tier)),
+    }
+    if cache_key:
+        _write_live_solver_cache(cache_key, response)
+    return response
+
+
+def _live_solver_cache_key(
+    *,
+    client: Any,
+    payload: Mapping[str, Any],
+    agent_id: str,
+    tier: str,
+    strong: bool,
+    system: str,
+    user: str,
+    reasoning_effort: str | None,
+    max_tokens: int,
+) -> str | None:
+    round_number = payload.get("round")
+    if (
+        not isinstance(round_number, int)
+        or round_number < 1
+        or round_number > LIVE_SOLVER_CACHE_ROUNDS
+    ):
+        return None
+    model = getattr(client, "strong_model" if strong else "cheap_model", "mistral-live")
+    material = {
+        "version": 1,
+        "agent_id": agent_id,
+        "problem_id": payload.get("problem_id"),
+        "round": round_number,
+        "tier": tier,
+        "model": model,
+        "reasoning_effort": reasoning_effort,
+        "max_tokens": max_tokens,
+        "system": system,
+        "user": user,
+    }
+    encoded = json.dumps(material, sort_keys=True).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _read_live_solver_cache() -> dict[str, dict[str, Any]]:
+    try:
+        data = json.loads(LIVE_SOLVER_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {
+        str(key): value
+        for key, value in data.items()
+        if isinstance(value, dict) and isinstance(value.get("answer"), str)
+    }
+
+
+def _write_live_solver_cache(key: str, response: Mapping[str, Any]) -> None:
+    cache = _read_live_solver_cache()
+    cache[key] = {
+        item_key: response[item_key]
+        for item_key in (
+            "answer",
+            "model",
+            "api_reasoning_configuration",
+            "actual_input_tokens",
+            "actual_output_tokens",
+        )
+        if item_key in response
+    }
+    try:
+        LIVE_SOLVER_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        LIVE_SOLVER_CACHE_PATH.write_text(
+            json.dumps(cache, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    except OSError:
+        return
 
 
 def _extract_live_answer(data: Mapping[str, Any]) -> str:

@@ -102,8 +102,6 @@ A reliable high-gear demo prompt is:
 ```text
 What is the probability of exactly three heads in ten fair coin flips? Answer only with the final fraction.
 ```
-<<<<<<< HEAD
-=======
 
 Run the included routing benchmark and inspect its generated cost, latency, and
 routing report:
@@ -137,4 +135,3 @@ The expanded runner accepts `--repeats N` for repeated trials. The current
 single-trial reports expose substantial latency and cost variance, so they should
 be treated as development measurements rather than statistically conclusive
 benchmarks.
->>>>>>> codex/autothink-arena-hackathon

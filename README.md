@@ -2,6 +2,12 @@
 
 Pay-to-Think dealer economy demo for Mistral Vibe AutoThink.
 
+[![Mistral Vibe AutoThink live demo](<docs/assets/autothink/Codex Image Aug 22, 2026, 05_19_37 PM.png>)](docs/assets/autothink/Mistral-Vibe-AutoThink-Live-Demo.mp4)
+
+**[▶ Watch the 18-second AutoThink live demo](docs/assets/autothink/Mistral-Vibe-AutoThink-Live-Demo.mp4)**
+
+Captured from the real Mistral Vibe CLI running Mistral Medium 3.5 in `auto` mode.
+
 ## What This Demo Shows
 
 Four agents play a 25-round short-answer reasoning game:

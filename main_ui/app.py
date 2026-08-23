@@ -10,10 +10,14 @@ import sys
 import streamlit as st
 
 UI_ROOT = Path(__file__).resolve().parent
-if str(UI_ROOT) not in sys.path:
+if sys.path[:1] != [str(UI_ROOT)]:
     sys.path.insert(0, str(UI_ROOT))
 
 from game import GameConfig, GameState, agenda_labels, new_game, play_round, roster_labels
+
+if sys.path[:1] != [str(UI_ROOT)]:
+    sys.path.insert(0, str(UI_ROOT))
+
 from mistral_client import MistralClient
 
 
@@ -47,20 +51,45 @@ CSS = """
 
 .room {
   position: relative;
-  height: 700px;
+  height: 900px;
   background:
     radial-gradient(circle at 50% 45%, #3a2818 0%, #1a100a 75%);
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   font-family: 'IBM Plex Sans', sans-serif;
   color: #f4efe4;
+}
+.dealer-cat {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  z-index: 5;
+  text-align: center;
+}
+.dealer-cat img, .dealer-cat .seat-avatar {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  border: 3px solid #f5d76e;
+  box-shadow: 0 8px 18px rgba(0,0,0,.45);
+}
+.dealer-cat .label {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #f5d76e;
+  font-weight: 800;
 }
 .table {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 56%;
   width: min(520px, 70%);
-  height: min(520px, 78%);
+  height: min(500px, 72%);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background:
@@ -74,9 +103,9 @@ CSS = """
 .table-center {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 38%;
   transform: translate(-50%, -50%);
-  width: 62%;
+  width: 68%;
   text-align: center;
 }
 .felt-top {
@@ -101,11 +130,11 @@ CSS = """
   background: #fffaf0;
   color: #1a1208;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 14px 16px;
   font-family: 'Libre Baskerville', serif;
-  font-size: 13px;
-  line-height: 1.35;
-  max-height: 150px;
+  font-size: 20px;
+  line-height: 1.4;
+  max-height: 210px;
   overflow: auto;
 }
 .problem-meta {
@@ -118,11 +147,11 @@ CSS = """
 }
 .seat {
   position: absolute;
-  width: 148px;
+  width: 214px;
   background: #140e0a;
   border: 2px solid #c9a227;
-  border-radius: 14px;
-  padding: 8px 10px;
+  border-radius: 16px;
+  padding: 12px 14px;
   z-index: 3;
   box-shadow: 0 8px 18px rgba(0,0,0,.4);
 }
@@ -135,25 +164,26 @@ CSS = """
 }
 .seat-head {
   display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 7px;
+  grid-template-columns: 76px 1fr;
+  gap: 10px;
   align-items: center;
 }
 .seat-avatar {
-  width: 34px;
-  height: 34px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: 50% 18%;
   border: 1px solid #f5d76e;
 }
-.seat-name { font-weight: 700; font-size: 13px; line-height: 1.1; }
+.seat-name { font-weight: 700; font-size: 16px; line-height: 1.15; }
 .seat-role {
-  margin-top: 3px;
+  margin-top: 4px;
   color: #f5d76e;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
-.seat-stack { color: #b7e4c7; font-size: 12px; margin: 3px 0 6px; }
+.seat-stack { color: #b7e4c7; font-size: 16px; font-weight: 700; margin: 8px 0 4px; }
 .seat-action {
   display: inline-block;
   background: #c9a227;
@@ -166,18 +196,22 @@ CSS = """
 .seat-ans {
   margin-top: 8px;
   font-family: 'Libre Baskerville', serif;
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.35;
 }
-.seat-think { font-size: 11px; color: #ddd; margin-top: 4px; }
+.seat-ans .mark { font-family: 'IBM Plex Sans', sans-serif; font-weight: 800; }
+.seat-ans .mark.ok { color: #7dcea0; }
+.seat-ans .mark.no { color: #f5a3a3; }
+.seat-think { font-size: 15px; color: #ddd; margin-top: 4px; }
 .dealer-answer {
-  margin-top: 10px;
+  margin-top: 12px;
   display: inline-block;
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: 17px;
+  line-height: 1.3;
   color: #050505;
   background: #ffe08a;
   font-weight: 900;
-  padding: 3px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
 }
 .rail {
@@ -201,6 +235,9 @@ CSS = """
 .hole .tag { font-size: 10px; color: #c9c0a8; }
 .tag.ok { color: #7dcea0; }
 .tag.no { color: #f5a3a3; }
+.below-table {
+  margin-top: 72px;
+}
 .talk-log {
   background: #18130f;
   border: 1px solid #6b4f1d;
@@ -304,7 +341,10 @@ def main() -> None:
         live = st.toggle("Live Mistral API", value=current.config.use_live_api)
         show_traces = st.toggle("Show dealer traces", value=True)
         st.caption("Reasoning prices Y: none $1, low $2, medium $3, high $5, xhigh $9.")
-        client = st.session_state.get("client") or MistralClient()
+        client = st.session_state.get("client")
+        if client is None or not hasattr(client, "available"):
+            client = MistralClient()
+            st.session_state.client = client
         if live and not client.available:
             st.warning("No MISTRAL_API_KEY. Seeded chips still play.")
         if st.button("New table", width="stretch"):
@@ -346,6 +386,7 @@ def main() -> None:
 
     _poker_table(last if last and last.get("round") else None, game)
 
+    st.markdown('<div class="below-table"></div>', unsafe_allow_html=True)
     talk, rail = st.columns([1.35, 1])
     with talk:
         if last and last.get("round") and game.config.enable_bluffing:
@@ -371,11 +412,22 @@ def _names(game: GameState) -> tuple[str, ...]:
     return tuple(game.display_names[agent_id] for agent_id in game.player_ids)
 
 
+def _money(value: object) -> str:
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if amount.is_integer():
+        return f"${int(amount)}"
+    return f"${amount:.2f}"
+
+
 def _player_view(record: dict, name: str, game: GameState) -> dict:
     entry = next(e for e in record["phase1"]["entries"] if e["agent"] == name)
     last_action = "SIT OUT" if entry["decision"] == "DECLINE" else "ANTE"
     think = 0
     answer = ""
+    correct = None
     for cycle in record.get("cycles") or []:
         for row in cycle["public"]["actions"]:
             if row["agent"] == name:
@@ -384,6 +436,7 @@ def _player_view(record: dict, name: str, game: GameState) -> dict:
         for row in cycle["dealer"]:
             if row["agent"] == name and row.get("answer"):
                 answer = row["answer"]
+                correct = bool(row.get("correct"))
     return {
         "name": name,
         "stack": game.bankrolls[name],
@@ -392,6 +445,7 @@ def _player_view(record: dict, name: str, game: GameState) -> dict:
         "action": last_action,
         "think": think,
         "answer": answer,
+        "correct": correct,
         "winner": name in (record.get("winners") or []),
     }
 
@@ -409,12 +463,16 @@ def _seat_html(p: dict, pos: str) -> str:
         klass += " winner"
     elif p.get("entered") is False:
         klass += " folded"
-    action = p.get("action") or "—"
-    if p.get("entered") and p.get("action") == "THINK":
-        action = f"THINK {p.get('think', 0)}"
-    elif p.get("entered") and p.get("action") == "ANTE":
-        action = "IN"
-    ans = html.escape(str(p.get("answer") or "—"))
+    raw_answer = p.get("answer")
+    if raw_answer:
+        mark = "✓" if p.get("correct") else "✕"
+        mark_class = "ok" if p.get("correct") else "no"
+        ans_html = (
+            f'<div class="seat-ans">answer: {html.escape(str(raw_answer))} '
+            f'<span class="mark {mark_class}">{mark}</span></div>'
+        )
+    else:
+        ans_html = '<div class="seat-ans">answer: —</div>'
     style = f"--seat-x:{pos[0]}%;--seat-y:{pos[1]}%;"
     emoji = SEAT_EMOJI.get(p["name"], "●")
     avatar = _seat_avatar(p)
@@ -426,10 +484,9 @@ def _seat_html(p: dict, pos: str) -> str:
           <div class="seat-role">{html.escape(str(p.get('thinking') or ''))}</div>
         </div>
       </div>
-      <div class="seat-stack">Stack {p['stack']} · {'in' if p.get('entered') else 'out'}</div>
-      <div class="seat-action">{html.escape(str(action))}</div>
-      <div class="seat-ans">{ans}</div>
-      <div class="seat-think">{p.get('think', 0)} think credits</div>
+      <div class="seat-stack">Total: {_money(p['stack'])}</div>
+      <div class="seat-think">Cost: {_money(p.get('think') or 0)}</div>
+      {ans_html}
     </div>"""
 
 
@@ -465,10 +522,7 @@ def _poker_table(record: dict | None, game: GameState) -> None:
         pot = record["prize"]
         meta = f"Hand {record['round']} · {html.escape(ann['category'])}"
         if record.get("winners"):
-            footer = (
-                f"Showdown · answer {html.escape(str(record['problem']['answer']))} · "
-                f"split {html.escape(str(record['payouts']))}"
-            )
+            footer = f"Showdown · answer {html.escape(str(record['problem']['answer']))}"
         else:
             footer = f"No winner · pot rolls {record.get('rollover', 0)}"
         board = f'<div class="problem-meta">Board</div>{q}<div class="dealer-answer">{footer}</div>'
@@ -496,11 +550,12 @@ def _poker_table(record: dict | None, game: GameState) -> None:
     st.markdown(
         f"""
 <div class="room">
+  {_dealer_html()}
   {seats}
   <div class="table">
     <div class="table-center">
       <div class="felt-top">{meta}</div>
-      <div class="pot-chip">POT {pot}</div>
+      <div class="pot-chip">POT {_money(pot)}</div>
       <div class="problem-card">{board}</div>
     </div>
   </div>
@@ -516,16 +571,33 @@ def _seat_positions(count: int) -> list[tuple[float, float]]:
     import math
 
     center_x = 50
-    center_y = 51
-    radius_x = 36
-    radius_y = 36
-    return [
-        (
-            center_x + radius_x * math.cos(-math.pi / 2 + 2 * math.pi * index / count),
-            center_y + radius_y * math.sin(-math.pi / 2 + 2 * math.pi * index / count),
-        )
+    center_y = 56
+    radius_x = 31
+    radius_y = 34
+    start = -math.pi / 2 + math.pi / count
+    lowest = max(
+        center_y + radius_y * math.sin(start + 2 * math.pi * index / count)
         for index in range(count)
-    ]
+    )
+    positions = []
+    for index in range(count):
+        angle = start + 2 * math.pi * index / count
+        x = center_x + radius_x * math.cos(angle)
+        y = center_y + radius_y * math.sin(angle)
+        if y < lowest - 1:
+            y += 11
+        positions.append((x, y))
+    return positions
+
+
+def _dealer_html() -> str:
+    path = PORTRAIT_ROOT / "dealer.png"
+    if path.exists() and path.stat().st_size > 0:
+        data = base64.b64encode(path.read_bytes()).decode("ascii")
+        face = f'<img src="data:image/png;base64,{data}" alt="Dealer">'
+    else:
+        face = '<div class="seat-avatar"></div>'
+    return f'<div class="dealer-cat">{face}<div class="label">Dealer</div></div>'
 
 
 def _answer_rail(record: dict) -> None:
@@ -611,8 +683,8 @@ def _dealer_panel(record: dict) -> None:
 def _dynamic_trace(trace: dict) -> None:
     st.markdown(
         f"""
-Cheap `{trace.get('cheap_answer')}` · probes {', '.join(str(a) for a in (trace.get('perturbed_answers') or []))}  
-Stability **{trace.get('stability')}** · {'PAY TO THINK' if trace.get('pay_to_think') else 'KEEP CHEAP'}  
+Cheap `{trace.get('cheap_answer')}` · probes {', '.join(str(a) for a in (trace.get('perturbed_answers') or []))}
+Stability **{trace.get('stability')}** · {'PAY TO THINK' if trace.get('pay_to_think') else 'KEEP CHEAP'}
 Deep `{trace.get('deep_answer') or '—'}` · changed {trace.get('changed_answer')}
         """
     )

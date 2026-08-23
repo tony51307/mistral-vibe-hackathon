@@ -17,15 +17,24 @@ from prompts import CHEAP_SYSTEM, DEEP_SYSTEM, cheap_user, deep_user
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEALER_ROOT = REPO_ROOT / "dealer"
+# Keep main_ui first so `import game` / `import mistral_client` do not
+# pick up the repo-root modules of the same name.
 if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-if str(DEALER_ROOT) not in sys.path:
-    sys.path.insert(0, str(DEALER_ROOT))
+    sys.path.append(str(REPO_ROOT))
 
 from dealer.game.agent_config import load_agent_catalog
 from dealer.game.dealer_distributor import DealerGame, SeasonComplete
-from dealer.game.loaders import load_agendas, load_problem_bank, load_table_modes
+from dealer.game.loaders import load_agenda_catalogs, load_problem_banks, load_table_modes
 from dealer.game.models import GameConfig as DealerGameConfig
+
+BANK_PATHS = (
+    DEALER_ROOT / "data/pay_to_think_problem_bank_v1.json",
+    DEALER_ROOT / "data/pay_to_think_reasoning_sensitive_additions_v2.json",
+)
+AGENDA_PATHS = (
+    DEALER_ROOT / "data/pay_to_think_agendas_v1.yaml",
+    DEALER_ROOT / "data/pay_to_think_mixed_old_new_agendas_v3.yaml",
+)
 
 
 DEFAULT_ROSTER_ID = "social_3"
@@ -48,9 +57,13 @@ REASONING_EFFORT_BY_TIER = {
 }
 
 
+def _load_catalogs():
+    bank = load_problem_banks(BANK_PATHS)
+    return bank, load_agenda_catalogs(AGENDA_PATHS, bank)
+
+
 def agenda_labels() -> dict[int, str]:
-    bank = load_problem_bank(DEALER_ROOT / "data/pay_to_think_problem_bank_v1.json")
-    agendas = load_agendas(DEALER_ROOT / "data/pay_to_think_agendas_v1.yaml", bank)
+    _, agendas = _load_catalogs()
     return {
         number: _display_agenda_name(agenda.name)
         for number, agenda in sorted(agendas.agendas.items())
@@ -124,8 +137,7 @@ def cents(dollars_value: int | float) -> int:
 
 
 def new_game(config: GameConfig) -> GameState:
-    bank = load_problem_bank(DEALER_ROOT / "data/pay_to_think_problem_bank_v1.json")
-    agendas = load_agendas(DEALER_ROOT / "data/pay_to_think_agendas_v1.yaml", bank)
+    bank, agendas = _load_catalogs()
     agent_catalog = load_agent_catalog(DEALER_ROOT / "agents/agent_rosters_v1.yaml")
     roster = agent_catalog.get_roster(config.agent_roster)
     dealer_config = DealerGameConfig.for_table_size(

@@ -30,6 +30,11 @@ PLAYER_PROMPTS = {
         "Generate an orange cat in an office playing poker, one paw on chips, "
         "playful and focused at the same time, cinematic portrait, square crop."
     ),
+    "dealer": (
+        "Generate a distinguished dealer cat portrait behind a poker table, "
+        "wearing a black bow tie and a gold dealer visor, calm confident face, "
+        "casino lighting, tight head-and-shoulders crop, square portrait."
+    ),
 }
 
 

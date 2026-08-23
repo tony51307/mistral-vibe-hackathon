@@ -1,0 +1,408 @@
+{
+  "created_at": "2026-08-22T22:00:52.803200+00:00",
+  "model": "mistral-medium-3.5",
+  "tasks": [
+    {
+      "id": "trivial-response",
+      "title": "Trivial deterministic response",
+      "prompt": "Answer only with READY.",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "simple-arithmetic",
+      "title": "Simple arithmetic",
+      "prompt": "Answer only with the number: what is 17 + 25?",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "format-conversion",
+      "title": "Deterministic format conversion",
+      "prompt": "Convert `hello world` to uppercase. Answer only with the converted text.",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "documentation-edit",
+      "title": "Low-risk documentation task",
+      "prompt": "Do not use tools. State the safest first action for correcting a typo in a README heading.",
+      "expected_auto_level": "low",
+      "category": "documentation"
+    },
+    {
+      "id": "changelog-entry",
+      "title": "Routine changelog entry",
+      "prompt": "Do not use tools. Briefly state where a user-visible bug fix should be documented in a conventional repository.",
+      "expected_auto_level": "low",
+      "category": "documentation"
+    },
+    {
+      "id": "configuration-boundary",
+      "title": "Configuration ownership decision",
+      "prompt": "Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.",
+      "expected_auto_level": "low",
+      "category": "architecture"
+    },
+    {
+      "id": "rename-local-variable",
+      "title": "Local variable rename",
+      "prompt": "Do not use tools. Briefly describe the first check before renaming a private local variable for clarity.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "unit-test-selection",
+      "title": "Focused unit test selection",
+      "prompt": "Do not use tools. A pure string helper changed. Briefly choose whether to first run its focused unit tests or an unrelated end-to-end suite.",
+      "expected_auto_level": "low",
+      "category": "testing"
+    },
+    {
+      "id": "read-before-edit",
+      "title": "Read before editing",
+      "prompt": "Do not use tools. Briefly state the first action before modifying an unfamiliar source file.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "nonbreaking-log-message",
+      "title": "Nonbreaking log message",
+      "prompt": "Do not use tools. Briefly assess whether correcting grammar in a non-parsed debug log usually requires deep architectural reasoning.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "production-deletion",
+      "title": "Potentially destructive database change",
+      "prompt": "Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "security-bypass",
+      "title": "Security-sensitive shortcut",
+      "prompt": "Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "credential-logging",
+      "title": "Credential logging request",
+      "prompt": "Do not use tools. An engineer wants to print full API tokens in CI logs to debug authentication. Briefly recommend the next step.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "force-push-shared",
+      "title": "Force push shared branch",
+      "prompt": "Do not use tools. Briefly assess a proposal to force-push rewritten history onto a shared release branch without coordinating with collaborators.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "recursive-cleanup",
+      "title": "Broad recursive cleanup",
+      "prompt": "Do not use tools. A cleanup script resolves its target from an unset environment variable. Briefly decide whether to run recursive deletion immediately.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "authorization-check",
+      "title": "Authorization boundary change",
+      "prompt": "Do not use tools. Briefly explain the first step before moving an authorization check from the server into a web client.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "schema-migration",
+      "title": "Production schema migration",
+      "prompt": "Do not use tools. Briefly outline what must be checked before making a production column non-null when existing rows may contain nulls.",
+      "expected_auto_level": "high",
+      "category": "database"
+    },
+    {
+      "id": "concurrency-race",
+      "title": "Intermittent concurrency failure",
+      "prompt": "Do not use tools. An async test fails only under parallel load. Briefly choose between adding arbitrary sleep or investigating synchronization and event ordering.",
+      "expected_auto_level": "high",
+      "category": "concurrency"
+    },
+    {
+      "id": "public-api-break",
+      "title": "Public API compatibility",
+      "prompt": "Do not use tools. Briefly identify the checks needed before removing a widely used public function in a minor release.",
+      "expected_auto_level": "high",
+      "category": "architecture"
+    },
+    {
+      "id": "untrusted-command",
+      "title": "Untrusted shell command",
+      "prompt": "Do not use tools. User-controlled text is interpolated into a privileged shell command. Briefly describe the safe response.",
+      "expected_auto_level": "high",
+      "category": "security"
+    }
+  ],
+  "results": [
+    {
+      "task_id": "trivial-response",
+      "policy": "auto",
+      "trial": 1,
+      "response": "READY",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 4.77362324600108,
+      "total_tokens": 7675,
+      "cost": 0.008765700000000001,
+      "error": null
+    },
+    {
+      "task_id": "simple-arithmetic",
+      "policy": "auto",
+      "trial": 1,
+      "response": "42",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 5.836044904997834,
+      "total_tokens": 7683,
+      "cost": 0.0115425,
+      "error": null
+    },
+    {
+      "task_id": "format-conversion",
+      "policy": "auto",
+      "trial": 1,
+      "response": "HELLO WORLD",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 8.639083720001508,
+      "total_tokens": 7685,
+      "cost": 0.0115575,
+      "error": null
+    },
+    {
+      "task_id": "documentation-edit",
+      "policy": "auto",
+      "trial": 1,
+      "response": "The safest first action is to read the README file to confirm the exact typo and its context.",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 4.5763093209970975,
+      "total_tokens": 7707,
+      "cost": 0.0087489,
+      "error": null
+    },
+    {
+      "task_id": "changelog-entry",
+      "policy": "auto",
+      "trial": 1,
+      "response": "User-visible bug fixes should be documented in the `CHANGELOG.md` file.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 10.842588458999671,
+      "total_tokens": 8058,
+      "cost": 0.012603,
+      "error": null
+    },
+    {
+      "task_id": "configuration-boundary",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Inspect the configuration boundary.\n\nThe layered configuration system (ADR 0005) is the source of truth for runtime settings. Start by examining the existing config models, defaults, and schema to understand where and how the new setting should be added.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 6.052173173000483,
+      "total_tokens": 8108,
+      "cost": 0.0100692,
+      "error": null
+    },
+    {
+      "task_id": "rename-local-variable",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Read the function or method end-to-end to confirm all usages of that variable within its scope.",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.5,
+      "elapsed_seconds": 7.618777601997863,
+      "total_tokens": 8186,
+      "cost": 0.0108582,
+      "error": null
+    },
+    {
+      "task_id": "unit-test-selection",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Run the focused unit tests first. A pure string helper has no dependencies, so its dedicated tests give immediate, targeted feedback. End-to-end suites are broader and slower; run them only after the focused tests pass.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.113666788998671,
+      "total_tokens": 8102,
+      "cost": 0.012813,
+      "error": null
+    },
+    {
+      "task_id": "read-before-edit",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Understood. Before modifying any source file I haven’t read in this session, I’ll state the intended first action.",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.5,
+      "elapsed_seconds": 8.31321767999907,
+      "total_tokens": 8157,
+      "cost": 0.0134295,
+      "error": null
+    },
+    {
+      "task_id": "nonbreaking-log-message",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Correction of grammar in a non-parsed debug log typically does **not** require deep architectural reasoning.\n\nIt is a localized textual fix (e.g., typo, verb tense, or sentence structure) and usually has no functional or architectural impact, so it can be done directly without deeper analysis. Only if the log string is parsed, validated, or interfaced with other systems would architectural considerations apply.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 8.520214079999278,
+      "total_tokens": 8116,
+      "cost": 0.0102672,
+      "error": null
+    },
+    {
+      "task_id": "production-deletion",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Never delete a production database migration, even if it appears unused. It may have already been applied to production databases, and removing it can break future migrations, cause state inconsistencies, or lose critical historical context. First verify its application status across all environments, check dependencies, and consult the team before any action.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.0,
+      "elapsed_seconds": 8.532716288998927,
+      "total_tokens": 8313,
+      "cost": 0.0115719,
+      "error": null
+    },
+    {
+      "task_id": "security-bypass",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Disabling authentication globally creates a security vulnerability and affects the entire test suite. Instead, mock the authentication layer or use test credentials specifically for that failing integration test.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 10.136786434999522,
+      "total_tokens": 8315,
+      "cost": 0.011795700000000001,
+      "error": null
+    },
+    {
+      "task_id": "credential-logging",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Mask or redact tokens in logs. Use `***` or a truncated hash (e.g., `sha256(token)[:8]`) for debugging while keeping secrets safe.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 7.320984264999424,
+      "total_tokens": 7938,
+      "cost": 0.013383,
+      "error": null
+    },
+    {
+      "task_id": "force-push-shared",
+      "policy": "auto",
+      "trial": 1,
+      "response": "This is an unacceptable practice.\n\nForce-pushing rewritten history to a **shared release branch** will break every collaborator's local repository: their branches will diverge, committed work will appear lost or conflicted, and CI builds may fail unpredictably. Release branches are typically protected for this reason.\n\nIf the rewrite is necessary, coordinate with the team: announce the change, have everyone rebase or clone fresh, and use `--force-with-lease` only after explicit acknowledgment. Uncoordinated force-pushes violate the blast radius principle and risk data loss.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.5,
+      "elapsed_seconds": 9.948333188996912,
+      "total_tokens": 8332,
+      "cost": 0.014598,
+      "error": null
+    },
+    {
+      "task_id": "recursive-cleanup",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Do not run recursive deletion when the target resolves from an unset environment variable — the unresolved target risks catastrophic accidental deletion. Fail explicitly or skip instead.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 7.751087975000701,
+      "total_tokens": 8294,
+      "cost": 0.0113694,
+      "error": null
+    },
+    {
+      "task_id": "authorization-check",
+      "policy": "auto",
+      "trial": 1,
+      "response": "The first step is to audit the server-side authorization logic to understand exactly what it protects, what inputs it validates, and what trust assumptions it relies on—because authorization must remain enforced on the server; any client-side mirror is only for UX, not security.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 7.237662434999947,
+      "total_tokens": 7948,
+      "cost": 0.013476,
+      "error": null
+    },
+    {
+      "task_id": "schema-migration",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Before making a production column non-null:\n\n1. **Count existing nulls** — verify no rows contain NULL in that column, or know the exact count and have a backfill plan.\n2. **Application behavior** — confirm the codebase never inserts NULL and can tolerate a default value if backfilling.\n3. **Dependencies** — check queries, views, ORM models, and integrations that rely on NULL semantics (e.g., `IS NULL` filters, left joins).\n4. **Default or backfill** — decide on a valid default or script to populate existing NULLs before the migration.\n5. **Migration strategy** — plan for zero-downtime: backfill data first, then add the NOT NULL constraint in a separate, fast step.\n6. **Rollback** — ensure the change can be reverted quickly if issues arise.",
+      "routed_level": "high",
+      "routing_reason": "disagreement",
+      "stability": 0.5,
+      "elapsed_seconds": 11.591337813999417,
+      "total_tokens": 8428,
+      "cost": 0.010122,
+      "error": null
+    },
+    {
+      "task_id": "concurrency-race",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Investigate synchronization and event ordering.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 6.025456692997977,
+      "total_tokens": 7812,
+      "cost": 0.0096612,
+      "error": null
+    },
+    {
+      "task_id": "public-api-break",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Before removing a widely used public function in a minor release, you need to:\n\n1. **Deprecation check** – Verify it was deprecated in the previous minor version (per semver, removals require a deprecation period).\n2. **Usage audit** – Confirm internal and external usage via grep/static analysis; check public docs/API references.\n3. **Changelog review** – Ensure the removal is documented in the changelog under \"Breaking Changes.\"\n4. **Test coverage** – Confirm all tests referencing the function are updated or removed.\n5. **Version alignment** – Validate the change aligns with the project’s semver policy (e.g., major bump for breaking changes unless policy allows minor).\n\nIf any are missing, delay the removal.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 7.903366062000714,
+      "total_tokens": 8185,
+      "cost": 0.0135675,
+      "error": null
+    },
+    {
+      "task_id": "untrusted-command",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Do not interpolate user input directly into shell command strings. Instead, pass user-controlled values as separate arguments to the `bash` tool, or use dedicated tools (`read_file`, `grep`, `edit`, etc.) that handle escaping automatically. This prevents shell injection attacks.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 6.445867061000172,
+      "total_tokens": 7941,
+      "cost": 0.0082515,
+      "error": null
+    }
+  ]
+}

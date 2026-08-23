@@ -6,6 +6,7 @@ import pytest
 from vibe.core.reasoning import ProbeDecision, ProbePerspective
 from vibe.core.reasoning.router import (
     build_probe_messages,
+    infer_reasoning_floor,
     is_trivial_request,
     route_probe_decisions,
 )
@@ -30,10 +31,10 @@ def test_stable_probes_select_low_thinking() -> None:
     assert decision.reason == "stable"
 
 
-def test_action_disagreement_selects_high_thinking() -> None:
+def test_action_disagreement_selects_medium_thinking() -> None:
     decision = route_probe_decisions([_decision(), _decision(action="edit")])
 
-    assert decision.level == "high"
+    assert decision.level == "medium"
     assert decision.stability == 0.5
     assert decision.reason == "disagreement"
 
@@ -66,12 +67,7 @@ def test_semantically_overlapping_targets_are_stable() -> None:
 
 
 @pytest.mark.parametrize(
-    "prompt",
-    [
-        "Answer only with READY.",
-        "Correct a typo in the README heading.",
-        "Fix documentation spelling.",
-    ],
+    "prompt", ["Correct a typo in the README heading.", "Fix documentation spelling."]
 )
 def test_trivial_requests_use_fast_path(prompt: str) -> None:
     assert is_trivial_request(prompt)
@@ -80,6 +76,7 @@ def test_trivial_requests_use_fast_path(prompt: str) -> None:
 @pytest.mark.parametrize(
     "prompt",
     [
+        "Solve this probability problem. Answer only with the final fraction.",
         "Delete a production database migration.",
         "Change authentication documentation.",
         "Fix a README typo. " * 30,
@@ -87,6 +84,43 @@ def test_trivial_requests_use_fast_path(prompt: str) -> None:
 )
 def test_risky_or_large_requests_do_not_use_fast_path(prompt: str) -> None:
     assert not is_trivial_request(prompt)
+
+
+def test_low_confidence_single_probe_selects_medium_thinking() -> None:
+    decision = route_probe_decisions([
+        _decision(risk="low").model_copy(update={"confidence": 0.6})
+    ])
+
+    assert decision.level == "medium"
+    assert decision.stability == 0.6
+    assert decision.reason == "disagreement"
+
+
+def test_agreeing_low_confidence_probes_select_medium_thinking() -> None:
+    decisions = [
+        _decision().model_copy(update={"confidence": 0.7}),
+        _decision().model_copy(update={"confidence": 0.6}),
+    ]
+
+    decision = route_probe_decisions(decisions)
+
+    assert decision.level == "medium"
+    assert decision.stability == 0.6
+    assert decision.reason == "disagreement"
+
+
+@pytest.mark.parametrize(
+    ("prompt", "expected"),
+    [
+        ("What is the capital of France?", "low"),
+        ("Solve 3x + 7 = 31.", "medium"),
+        ("If all A are B and all B are C, is every A a C?", "medium"),
+        ("What is the probability of exactly three heads?", "high"),
+        ("Prove the optimization has no counterexample.", "high"),
+    ],
+)
+def test_infers_reasoning_floor(prompt: str, expected: str) -> None:
+    assert infer_reasoning_floor(prompt) == expected
 
 
 def test_probe_response_extracts_json_from_code_fence() -> None:
@@ -112,3 +146,6 @@ def test_probe_perspectives_preserve_original_request() -> None:
 
     assert request in (messages[-1].content or "")
     assert "Do not change any facts or constraints" in (messages[0].content or "")
+    system_prompt = messages[0].content or ""
+    assert '"answer only"' in system_prompt
+    assert "Risk means the reasoning effort required" in system_prompt

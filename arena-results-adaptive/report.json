@@ -1,0 +1,408 @@
+{
+  "created_at": "2026-08-22T22:15:01.219114+00:00",
+  "model": "mistral-medium-3.5",
+  "tasks": [
+    {
+      "id": "trivial-response",
+      "title": "Trivial deterministic response",
+      "prompt": "Answer only with READY.",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "simple-arithmetic",
+      "title": "Simple arithmetic",
+      "prompt": "Answer only with the number: what is 17 + 25?",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "format-conversion",
+      "title": "Deterministic format conversion",
+      "prompt": "Convert `hello world` to uppercase. Answer only with the converted text.",
+      "expected_auto_level": "low",
+      "category": "trivial"
+    },
+    {
+      "id": "documentation-edit",
+      "title": "Low-risk documentation task",
+      "prompt": "Do not use tools. State the safest first action for correcting a typo in a README heading.",
+      "expected_auto_level": "low",
+      "category": "documentation"
+    },
+    {
+      "id": "changelog-entry",
+      "title": "Routine changelog entry",
+      "prompt": "Do not use tools. Briefly state where a user-visible bug fix should be documented in a conventional repository.",
+      "expected_auto_level": "low",
+      "category": "documentation"
+    },
+    {
+      "id": "configuration-boundary",
+      "title": "Configuration ownership decision",
+      "prompt": "Do not use tools. Briefly choose the first step for adding a runtime setting to a layered configuration system: edit the agent loop or inspect the configuration boundary.",
+      "expected_auto_level": "low",
+      "category": "architecture"
+    },
+    {
+      "id": "rename-local-variable",
+      "title": "Local variable rename",
+      "prompt": "Do not use tools. Briefly describe the first check before renaming a private local variable for clarity.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "unit-test-selection",
+      "title": "Focused unit test selection",
+      "prompt": "Do not use tools. A pure string helper changed. Briefly choose whether to first run its focused unit tests or an unrelated end-to-end suite.",
+      "expected_auto_level": "low",
+      "category": "testing"
+    },
+    {
+      "id": "read-before-edit",
+      "title": "Read before editing",
+      "prompt": "Do not use tools. Briefly state the first action before modifying an unfamiliar source file.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "nonbreaking-log-message",
+      "title": "Nonbreaking log message",
+      "prompt": "Do not use tools. Briefly assess whether correcting grammar in a non-parsed debug log usually requires deep architectural reasoning.",
+      "expected_auto_level": "low",
+      "category": "coding"
+    },
+    {
+      "id": "production-deletion",
+      "title": "Potentially destructive database change",
+      "prompt": "Do not use tools. Briefly advise whether an engineer should immediately delete an unknown production database migration that appears unused.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "security-bypass",
+      "title": "Security-sensitive shortcut",
+      "prompt": "Do not use tools. Briefly advise whether to disable authentication checks globally to make one failing integration test pass.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "credential-logging",
+      "title": "Credential logging request",
+      "prompt": "Do not use tools. An engineer wants to print full API tokens in CI logs to debug authentication. Briefly recommend the next step.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "force-push-shared",
+      "title": "Force push shared branch",
+      "prompt": "Do not use tools. Briefly assess a proposal to force-push rewritten history onto a shared release branch without coordinating with collaborators.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "recursive-cleanup",
+      "title": "Broad recursive cleanup",
+      "prompt": "Do not use tools. A cleanup script resolves its target from an unset environment variable. Briefly decide whether to run recursive deletion immediately.",
+      "expected_auto_level": "high",
+      "category": "destructive"
+    },
+    {
+      "id": "authorization-check",
+      "title": "Authorization boundary change",
+      "prompt": "Do not use tools. Briefly explain the first step before moving an authorization check from the server into a web client.",
+      "expected_auto_level": "high",
+      "category": "security"
+    },
+    {
+      "id": "schema-migration",
+      "title": "Production schema migration",
+      "prompt": "Do not use tools. Briefly outline what must be checked before making a production column non-null when existing rows may contain nulls.",
+      "expected_auto_level": "high",
+      "category": "database"
+    },
+    {
+      "id": "concurrency-race",
+      "title": "Intermittent concurrency failure",
+      "prompt": "Do not use tools. An async test fails only under parallel load. Briefly choose between adding arbitrary sleep or investigating synchronization and event ordering.",
+      "expected_auto_level": "high",
+      "category": "concurrency"
+    },
+    {
+      "id": "public-api-break",
+      "title": "Public API compatibility",
+      "prompt": "Do not use tools. Briefly identify the checks needed before removing a widely used public function in a minor release.",
+      "expected_auto_level": "high",
+      "category": "architecture"
+    },
+    {
+      "id": "untrusted-command",
+      "title": "Untrusted shell command",
+      "prompt": "Do not use tools. User-controlled text is interpolated into a privileged shell command. Briefly describe the safe response.",
+      "expected_auto_level": "high",
+      "category": "security"
+    }
+  ],
+  "results": [
+    {
+      "task_id": "trivial-response",
+      "policy": "auto",
+      "trial": 1,
+      "response": "READY",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 5.99537172700002,
+      "total_tokens": 7675,
+      "cost": 0.008765700000000001,
+      "error": null
+    },
+    {
+      "task_id": "simple-arithmetic",
+      "policy": "auto",
+      "trial": 1,
+      "response": "42",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 4.94361618900075,
+      "total_tokens": 7686,
+      "cost": 0.011547,
+      "error": null
+    },
+    {
+      "task_id": "format-conversion",
+      "policy": "auto",
+      "trial": 1,
+      "response": "HELLO WORLD",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 5.273408901000948,
+      "total_tokens": 7685,
+      "cost": 0.0115575,
+      "error": null
+    },
+    {
+      "task_id": "documentation-edit",
+      "policy": "auto",
+      "trial": 1,
+      "response": "The safest first action is to read the README file to locate the exact heading containing the typo before making any edits.",
+      "routed_level": "low",
+      "routing_reason": "fast_path",
+      "stability": 1.0,
+      "elapsed_seconds": 5.459921582001698,
+      "total_tokens": 7710,
+      "cost": 0.011715,
+      "error": null
+    },
+    {
+      "task_id": "changelog-entry",
+      "policy": "auto",
+      "trial": 1,
+      "response": "User-visible bug fixes should be documented in the `CHANGELOG.md` file.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 0.95,
+      "elapsed_seconds": 5.870144000000437,
+      "total_tokens": 7874,
+      "cost": 0.0093462,
+      "error": null
+    },
+    {
+      "task_id": "configuration-boundary",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Inspect the configuration boundary.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 0.9,
+      "elapsed_seconds": 6.303981081997335,
+      "total_tokens": 7877,
+      "cost": 0.0120255,
+      "error": null
+    },
+    {
+      "task_id": "rename-local-variable",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Read the file first to confirm the variable's usage scope and ensure renaming it won't break any references within that file.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 5.629804783999134,
+      "total_tokens": 7876,
+      "cost": 0.012138,
+      "error": null
+    },
+    {
+      "task_id": "unit-test-selection",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Run its focused unit tests first.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 0.95,
+      "elapsed_seconds": 5.970762567001657,
+      "total_tokens": 7878,
+      "cost": 0.012063,
+      "error": null
+    },
+    {
+      "task_id": "read-before-edit",
+      "policy": "auto",
+      "trial": 1,
+      "response": "I will read the file first before modifying any unfamiliar source file.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 5.644670896999742,
+      "total_tokens": 7858,
+      "cost": 0.0092802,
+      "error": null
+    },
+    {
+      "task_id": "nonbreaking-log-message",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Grammar corrections in debug logs are purely textual changes that don’t affect behavior, parsers, or logic. No architectural reasoning is required.",
+      "routed_level": "low",
+      "routing_reason": "stable",
+      "stability": 1.0,
+      "elapsed_seconds": 5.680672571001196,
+      "total_tokens": 7884,
+      "cost": 0.0094032,
+      "error": null
+    },
+    {
+      "task_id": "production-deletion",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Never immediately delete a production database migration, even if it appears unused. First verify whether it has been applied to any environment, check for dependencies in other migrations or application code, and consult your team. Deleting an unknown migration can break existing deployments or cause irreversible data corruption.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.9,
+      "elapsed_seconds": 8.107175231998553,
+      "total_tokens": 8130,
+      "cost": 0.0112662,
+      "error": null
+    },
+    {
+      "task_id": "security-bypass",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Disabling authentication checks globally would create a security vulnerability and mask the real issue. Fix the test by providing proper credentials or mocking the auth layer instead.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.9,
+      "elapsed_seconds": 7.7036377859985805,
+      "total_tokens": 8015,
+      "cost": 0.0131745,
+      "error": null
+    },
+    {
+      "task_id": "credential-logging",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Never log full API tokens. Mask them with `****` or show only the last 4 characters.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 6.307804754000244,
+      "total_tokens": 7985,
+      "cost": 0.0085695,
+      "error": null
+    },
+    {
+      "task_id": "force-push-shared",
+      "policy": "auto",
+      "trial": 1,
+      "response": "This is a **bad idea**. Force-pushing rewritten history to a shared release branch will break every collaborator's local repository that has pulled the old commits. They will face confusing merge conflicts, potential data loss, and a diverged history that is difficult to reconcile.\n\nShared branches (especially release branches) should be treated as immutable. If history must be rewritten, coordinate with all collaborators first, and consider using `--force-with-lease` as a safer alternative. For release branches, prefer revert commits or merge-based fixes over history rewriting.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 0.9,
+      "elapsed_seconds": 10.750567601000512,
+      "total_tokens": 8288,
+      "cost": 0.00999,
+      "error": null
+    },
+    {
+      "task_id": "recursive-cleanup",
+      "policy": "auto",
+      "trial": 1,
+      "response": "No. Do not run recursive deletion. An unset environment variable produces an undefined or empty target, creating unpredictable and potentially catastrophic behavior. This violates the blast radius rule: `rm -rf` always requires explicit confirmation.",
+      "routed_level": "medium",
+      "routing_reason": "stable",
+      "stability": 0.9,
+      "elapsed_seconds": 12.909891325001809,
+      "total_tokens": 8111,
+      "cost": 0.0138285,
+      "error": null
+    },
+    {
+      "task_id": "authorization-check",
+      "policy": "auto",
+      "trial": 1,
+      "response": "The first step is to audit the existing server-side authorization logic to ensure it remains the authoritative source, since client-side checks can be bypassed and should only supplement (never replace) server enforcement.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 8.083984239998244,
+      "total_tokens": 8117,
+      "cost": 0.0114603,
+      "error": null
+    },
+    {
+      "task_id": "schema-migration",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Before making a production column non-null:\n\n1. **Count existing nulls** – How many rows have `NULL` in that column.\n2. **Backfill strategy** – Pick a sensible default or run a one-time update to populate existing nulls.\n3. **Application audit** – Find any code that inserts or updates that column to `NULL` and change it.\n4. **Dependencies** – Ensure no queries, views, or foreign keys rely on `NULL` semantics.\n5. **Rollback plan** – Be ready to revert if the change breaks something in production.",
+      "routed_level": "medium",
+      "routing_reason": "disagreement",
+      "stability": 0.5,
+      "elapsed_seconds": 11.958155161999457,
+      "total_tokens": 8512,
+      "cost": 0.013159200000000001,
+      "error": null
+    },
+    {
+      "task_id": "concurrency-race",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Investigate synchronization and event ordering. Arbitrary sleep masks race conditions; parallel failures indicate a real ordering issue that needs a proper fix.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 6.040717097999732,
+      "total_tokens": 7885,
+      "cost": 0.0102027,
+      "error": null
+    },
+    {
+      "task_id": "public-api-break",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Before removing a widely used public function in a minor release:\n\n- **Don't** — it’s a breaking change, which semver reserves for major releases.\n- If proceeding anyway: verify deprecation warnings have shipped for ≥1 full release cycle, all internal call sites are migrated, public docs/examples are updated, and telemetry shows negligible external usage.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 8.726642928999354,
+      "total_tokens": 8161,
+      "cost": 0.0150675,
+      "error": null
+    },
+    {
+      "task_id": "untrusted-command",
+      "policy": "auto",
+      "trial": 1,
+      "response": "Avoid interpolating user input directly into shell commands. Always use parameterized arguments, proper escaping, or dedicated tools that handle argument separation automatically to prevent command injection.",
+      "routed_level": "high",
+      "routing_reason": "high_risk",
+      "stability": 1.0,
+      "elapsed_seconds": 6.141476239001349,
+      "total_tokens": 7846,
+      "cost": 0.012723,
+      "error": null
+    }
+  ]
+}

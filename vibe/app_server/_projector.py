@@ -42,6 +42,7 @@ from vibe.app_server.models import (
     PublicNoticeEntry,
     PublicReasoningEntry,
     ReasoningRoutingNoticeDetail,
+    ReasoningRoutingProgressNoticeDetail,
     RunningEffectState,
     SessionTitleUpdatedNoticeDetail,
     SubagentEffectDetail,
@@ -72,6 +73,7 @@ from vibe.core.types import (
     PlanReviewRequestedEvent,
     ReasoningEvent,
     ReasoningRoutingEvent,
+    ReasoningRoutingProgressEvent,
     SessionTitleUpdatedEvent,
     ToolCallEvent,
     ToolResultEvent,
@@ -147,6 +149,7 @@ class EventProjector:
                 | PlanReviewRequestedEvent()
                 | PlanReviewEndedEvent()
                 | ReasoningRoutingEvent()
+                | ReasoningRoutingProgressEvent()
             ):
                 updates = [self._project_notice(event)]
             case _:
@@ -775,6 +778,7 @@ type NoticeEvent = (
     | PlanReviewRequestedEvent
     | PlanReviewEndedEvent
     | ReasoningRoutingEvent
+    | ReasoningRoutingProgressEvent
 )
 
 
@@ -809,9 +813,17 @@ def _notice_data(event: NoticeEvent) -> tuple[str, NoticeDetail]:
             message = "Plan review ended"
             detail = PlanReviewEndedNoticeDetail()
         case ReasoningRoutingEvent():
-            message = f"AutoThink selected {event.level} thinking"
+            message = (
+                f"AutoThink → {event.level.upper()} · "
+                f"{event.stability:.0%} routing stability"
+            )
             detail = ReasoningRoutingNoticeDetail(
                 level=event.level, stability=event.stability, reason=event.reason
+            )
+        case ReasoningRoutingProgressEvent():
+            message = f"AutoThink · {event.message}"
+            detail = ReasoningRoutingProgressNoticeDetail(
+                stage=event.stage, message=event.message
             )
         case _:
             assert_never(event)

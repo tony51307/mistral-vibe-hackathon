@@ -1,0 +1,85 @@
+[
+  {
+    "id": "addition",
+    "title": "Simple addition",
+    "prompt": "Answer only with the result: 17 + 25.",
+    "expected_auto_level": "low",
+    "category": "arithmetic",
+    "expected_response": "42"
+  },
+  {
+    "id": "uppercase",
+    "title": "Text transformation",
+    "prompt": "Convert `hello world` to uppercase. Answer only with the result.",
+    "expected_auto_level": "low",
+    "category": "transformation",
+    "expected_response": "HELLO WORLD"
+  },
+  {
+    "id": "weekday",
+    "title": "Simple factual transformation",
+    "prompt": "Answer only with the weekday immediately after Tuesday.",
+    "expected_auto_level": "low",
+    "category": "factual",
+    "expected_response": "Wednesday"
+  },
+  {
+    "id": "linear-equation",
+    "title": "Linear equation",
+    "prompt": "Solve 3(x - 4) = 2x + 7. Answer only with the value of x.",
+    "expected_auto_level": "low",
+    "category": "algebra",
+    "expected_response": "19"
+  },
+  {
+    "id": "probability",
+    "title": "Without-replacement probability",
+    "prompt": "A jar has 5 red, 4 blue, and 3 green balls. Two are drawn without replacement. Answer only with the simplified probability that both are red.",
+    "expected_auto_level": "high",
+    "category": "probability",
+    "expected_response": "5/33",
+    "response_match": "contains"
+  },
+  {
+    "id": "bat-ball",
+    "title": "Bat and ball cognitive reflection",
+    "prompt": "A bat and ball cost $1.10 total. The bat costs $1 more than the ball. Answer only with the ball's cost in dollars.",
+    "expected_auto_level": "high",
+    "category": "reasoning",
+    "expected_response": "0.05",
+    "response_match": "contains"
+  },
+  {
+    "id": "monty-hall",
+    "title": "Monty Hall decision",
+    "prompt": "In the standard Monty Hall problem, after the host opens a goat door, should the contestant stay or switch to maximize winning probability? Answer only with STAY or SWITCH.",
+    "expected_auto_level": "high",
+    "category": "probability",
+    "expected_response": "SWITCH"
+  },
+  {
+    "id": "combinations",
+    "title": "Pair combinations",
+    "prompt": "How many unordered pairs can be selected from 12 distinct items? Answer only with the number.",
+    "expected_auto_level": "high",
+    "category": "combinatorics",
+    "expected_response": "66"
+  },
+  {
+    "id": "syllogism",
+    "title": "Syllogism validity",
+    "prompt": "All bloops are razzies. Some razzies are lazzies. Does it follow that all bloops are lazzies? Answer only YES or NO.",
+    "expected_auto_level": "high",
+    "category": "logic",
+    "expected_response": "NO"
+  },
+  {
+    "id": "python-alias",
+    "title": "Python aliasing behavior",
+    "prompt": "What does this Python code print? `x = [1, 2]; y = x; x += [3]; print(y)`. Answer only with the printed list.",
+    "expected_auto_level": "high",
+    "category": "coding",
+    "expected_response": "[1, 2, 3]",
+    "response_match": "contains"
+  }
+]

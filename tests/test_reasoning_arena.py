@@ -5,8 +5,18 @@ from scripts.reasoning_arena import (
     ArenaResult,
     ArenaTask,
     _result_from_history,
+    load_repo_problem_tasks,
     render_markdown,
 )
+
+
+def test_loads_repository_problem_bank() -> None:
+    tasks = load_repo_problem_tasks()
+
+    assert len(tasks) == 25
+    assert tasks[0].id == "math_001"
+    assert tasks[0].response_match == "accepted"
+    assert tasks[0].accepted_responses == ["45", "45.0"]
 
 
 def test_result_extracts_auto_thinking_route() -> None:
@@ -28,7 +38,13 @@ def test_result_extracts_auto_thinking_route() -> None:
         },
     ]
 
-    result = _result_from_history("architecture", "auto", history, 1.25)
+    task = ArenaTask(
+        id="architecture",
+        title="Architecture",
+        prompt="Inspect first",
+        expected_auto_level="high",
+    )
+    result = _result_from_history(task, "auto_adaptive", history, 1.25)
 
     assert result.response == "Inspect first."
     assert result.routed_level == "high"
@@ -47,7 +63,7 @@ def test_markdown_reports_auto_routing_agreement() -> None:
         results=[
             ArenaResult(
                 task_id="simple",
-                policy="auto",
+                policy="auto_adaptive",
                 response="READY",
                 routed_level="low",
                 elapsed_seconds=1,
@@ -59,6 +75,8 @@ def test_markdown_reports_auto_routing_agreement() -> None:
 
     markdown = render_markdown(report)
 
-    assert "AutoThink routing agreement: **1/1**" in markdown
-    assert "| Simple | auto | low | 100 | $0.00100 | 1.00 |" in markdown
-    assert "| auto | 100 | $0.00100 | 1.00 |" in markdown
+    assert "auto_adaptive routing agreement: **1/1" in markdown
+    assert (
+        "| Simple | 1 | auto_adaptive | low | — | 100 | $0.00100 | 1.00 |" in markdown
+    )
+    assert "| auto_adaptive | 1 | 0.0% | 100 | $0.00100 | 1.00 |" in markdown

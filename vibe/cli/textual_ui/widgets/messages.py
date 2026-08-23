@@ -9,7 +9,10 @@ from vibe.app_server.models import (
     HookSeverity,
     ImageAttachment,
     InlineImageSource,
+    ReasoningRoutingNoticeDetail,
+    ReasoningRoutingProgressNoticeDetail,
 )
+from vibe.cli.textual_ui.auto_thinking import routing_explanation, routing_path
 from vibe.observability.logging import logger
 from vibe.utils.io import read_safe_async
 
@@ -435,6 +438,62 @@ class UserCommandMessage(Static):
             yield ExpandingBorder(classes="user-command-border")
             with Vertical(classes="user-command-content"):
                 yield Markdown(self._content)
+
+
+class AutoThinkMessage(Static):
+    def __init__(
+        self,
+        detail: ReasoningRoutingNoticeDetail | None = None,
+        progress: ReasoningRoutingProgressNoticeDetail | None = None,
+    ) -> None:
+        super().__init__(classes="auto-think-message")
+        self._detail = detail
+        self._progress = progress
+
+    def update_progress(self, detail: ReasoningRoutingProgressNoticeDetail) -> None:
+        self._progress = detail
+        self.refresh()
+
+    def complete(self, detail: ReasoningRoutingNoticeDetail) -> None:
+        self._detail = detail
+        self._progress = None
+        self.refresh()
+
+    def render(self) -> Content:
+        if self._detail is None:
+            return self._render_progress()
+        level_style = {
+            "off": "$text-muted",
+            "low": "$success",
+            "medium": "$primary",
+            "high": "$warning",
+            "max": "$error",
+        }.get(self._detail.level, "$primary")
+        filled = round(self._detail.stability * 10)
+        meter = f"{'━' * filled}{'─' * (10 - filled)}"
+        return Content.assemble(
+            ("⚡ AutoThink ", "$mistral_orange bold"),
+            ("→ ", "$text-muted"),
+            (self._detail.level.upper(), f"{level_style} bold"),
+            (f"  {meter} {self._detail.stability:.0%}\n", "$text-muted"),
+            (f"{routing_path(self._detail.reason, self._detail.level)}\n", "$primary"),
+            (routing_explanation(self._detail.reason), "$text-muted"),
+        )
+
+    def _render_progress(self) -> Content:
+        progress = self._progress
+        if progress is None:
+            return Content.styled("⚡ AutoThink · Starting…", "$mistral_orange bold")
+        stage_index = {"analyzing": 2, "probing": 5, "verifying": 8, "selecting": 10}[
+            progress.stage
+        ]
+        meter = f"{'━' * stage_index}{'─' * (10 - stage_index)}"
+        return Content.assemble(
+            ("⚡ AutoThink · ", "$mistral_orange bold"),
+            (progress.stage.upper(), "$primary bold"),
+            (f"  {meter}\n", "$text-muted"),
+            (progress.message, "$text-muted"),
+        )
 
 
 VSCODE_EXTENSION_URI = "vscode:extension/mistralai.mistral-vibe-code"

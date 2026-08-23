@@ -438,10 +438,11 @@ class ModelConfig(BaseModel):
 class ReasoningRouterConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    strategy: Literal["adaptive", "value"] = "adaptive"
     probe_count: int = Field(default=2, ge=1, le=2)
     minimum: ThinkingLevel = "low"
     maximum: ThinkingLevel = "high"
-    max_probe_tokens: int = Field(default=256, ge=64, le=2048)
+    max_probe_tokens: int = Field(default=128, ge=64, le=2048)
 
     @model_validator(mode="after")
     def validate_bounds(self) -> ReasoningRouterConfig:

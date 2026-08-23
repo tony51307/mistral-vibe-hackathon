@@ -2,6 +2,12 @@
 
 Pay-to-Think poker-table demo for Mistral Vibe Auto Thinking.
 
+[![Mistral Vibe AutoThink live demo](<docs/assets/autothink/Codex Image Aug 22, 2026, 05_19_37 PM.png>)](docs/assets/autothink/Mistral-Vibe-AutoThink-Live-Demo.mp4)
+
+**[▶ Watch the 18-second AutoThink live demo](docs/assets/autothink/Mistral-Vibe-AutoThink-Live-Demo.mp4)**
+
+Captured from the real Mistral Vibe CLI running Mistral Medium 3.5 in `auto` mode.
+
 ## Demo
 
 Three agents play a 5-hand math bidding game in the Streamlit UI:
@@ -77,5 +83,58 @@ To use Vibe directly:
 
 ```bash
 uv run vibe
-# In Vibe: /thinking auto
+# In Vibe: run /thinking, then select auto
 ```
+
+Each routed turn displays a live AutoThink card that advances through task
+analysis, low-cost probing, verification when needed, and final gear selection.
+The card shows routing stability and a compact decision path without exposing
+private chain-of-thought. After a turn, inspect the latest route or the session
+dashboard:
+
+```text
+/thinking explain
+/thinking stats
+```
+
+A reliable high-gear demo prompt is:
+
+```text
+What is the probability of exactly three heads in ten fair coin flips? Answer only with the final fraction.
+```
+<<<<<<< HEAD
+=======
+
+Run the included routing benchmark and inspect its generated cost, latency, and
+routing report:
+
+```bash
+uv run python scripts/reasoning_arena.py
+```
+
+Evaluation artifacts include:
+
+- `arena-results/report.md`: the original five-task baseline.
+- `arena-results-expanded/report.md`: a 20-task Low/High/Auto comparison before
+  the latest safety tuning.
+- `arena-results-tuned/report.md`: post-tuning AutoThink routing verification.
+- `arena-results-adaptive/report.md`: one-model adaptive-probe evaluation.
+- `arena-results-value-comparison/analysis.md`: quality/cost comparison of the
+  preserved adaptive router and the candidate/critic value router.
+
+Select the value-of-computation strategy without changing models:
+
+```toml
+[reasoning_router]
+strategy = "value"
+```
+
+The default remains `adaptive` for compatibility. The `value` strategy creates
+a reusable Low candidate, critiques it for a concrete material defect, and
+passes both into the final Low/Medium/High call.
+
+The expanded runner accepts `--repeats N` for repeated trials. The current
+single-trial reports expose substantial latency and cost variance, so they should
+be treated as development measurements rather than statistically conclusive
+benchmarks.
+>>>>>>> codex/autothink-arena-hackathon

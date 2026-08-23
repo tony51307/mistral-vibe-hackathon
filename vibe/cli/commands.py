@@ -64,7 +64,7 @@ class CommandRegistry:
             ),
             "thinking": Command(
                 aliases=frozenset(["/thinking"]),
-                description="Select thinking level",
+                description="Select thinking level or show AutoThink explain/stats",
                 handler="_show_thinking",
                 side_channel=True,
             ),

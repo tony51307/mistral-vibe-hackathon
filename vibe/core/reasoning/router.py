@@ -38,28 +38,58 @@ class ReasoningRoutingDecision(BaseModel):
     level: ThinkingLevel
     stability: float = Field(ge=0, le=1)
     reason: Literal["fast_path", "stable", "disagreement", "high_risk", "probe_failed"]
+    context: str | None = None
 
 
 _PROBE_SYSTEM = """You are a cheap decision-stability probe for a coding agent.
 Do not solve the task or use tools. Do not change any facts or constraints.
+Risk means the reasoning effort required for a materially correct answer, not safety.
+Use low only for direct recall or a single mechanical step with no edge cases. Use
+medium for multi-step calculations, interacting constraints, or ambiguity. Use high
+for probability, proofs, optimization, boundary cases, or conclusions whose subtle
+errors are hard to detect. Brief requested output does not make a task easy: ignore
+phrases such as "answer only" when assigning risk.
 Return only JSON with this exact shape:
 {"action":"inspect|edit|run|answer|plan|ask", "targets":["short names"],
  "risk":"low|medium|high", "confidence":0.0}
 Keep targets short and include at most three."""
 
 _FAST_PATH_PATTERNS = (
-    r"\banswer only\b",
     r"\b(readme|documentation|docs?)\b.*\b(typo|spelling|heading|formatting)\b",
     r"\b(typo|spelling|heading|formatting)\b.*\b(readme|documentation|docs?)\b",
+)
+_HIGH_RISK_PATTERNS = (
+    r"\b(log|print|echo|expose|publish)\b.{0,80}\b(api[ -]?tokens?|credentials?|secrets?)\b",
+    r"\b(api[ -]?tokens?|credentials?|secrets?)\b.{0,80}\b(log|print|echo|expose|publish)\b",
+    r"\bauthori[sz]ation\b.{0,100}\b(server|backend)\b.{0,100}\b(client|frontend|browser)\b",
+    r"\b(remov(?:e|ing)|delet(?:e|ing))\b.{0,100}\b(public (api|function)|minor release)\b",
+    r"\buser[- ]controlled\b.{0,100}\b(privileged )?(shell )?command\b",
+    r"\b(async|concurren\w*)\b.{0,100}\b(parallel|race|synchroni[sz]|arbitrary sleep)\b",
 )
 _HIGH_CONSEQUENCE_TERMS = re.compile(
     r"\b(auth(?:entication|orization)?|credential|database|delete|deploy|migration|"
     r"permission|production|release|secret|security)\b",
     flags=re.IGNORECASE,
 )
+_HIGH_REASONING_TERMS = re.compile(
+    r"\b(at least|at most|counterexample|exactly|optimi[sz]\w*|paradox\w*|"
+    r"probabilit\w*|prove|proof|without replacement)\b",
+    flags=re.IGNORECASE,
+)
+_QUANTITATIVE_TERMS = re.compile(
+    r"\b(acceleration|complexity|divisors?|edges?|energy|factor|force|graph|"
+    r"percent|solve|speed|velocity|weight)\b|%|\^|\d\s*[+*/=-]",
+    flags=re.IGNORECASE,
+)
+_LOGICAL_TERMS = re.compile(
+    r"\b(all|and|false|if|implies|neither|then|true)\b", flags=re.IGNORECASE
+)
 _TARGET_STOP_WORDS = {"a", "and", "boundary", "file", "module", "the"}
 _TARGET_SYNONYMS = {"configuration": "config", "documentation": "docs"}
 _FAST_PATH_MAX_CHARS = 300
+_CONFIDENT_PROBE_THRESHOLD = 0.8
+_MULTI_STEP_NUMBER_COUNT = 2
+_MULTI_STEP_LOGIC_TERM_COUNT = 3
 
 
 def is_trivial_request(request: str) -> bool:
@@ -69,6 +99,28 @@ def is_trivial_request(request: str) -> bool:
         re.search(pattern, request, flags=re.IGNORECASE)
         for pattern in _FAST_PATH_PATTERNS
     )
+
+
+def is_high_risk_request(request: str) -> bool:
+    return any(
+        re.search(pattern, request, flags=re.IGNORECASE | re.DOTALL)
+        for pattern in _HIGH_RISK_PATTERNS
+    )
+
+
+def is_high_consequence_request(request: str) -> bool:
+    return _HIGH_CONSEQUENCE_TERMS.search(request) is not None
+
+
+def infer_reasoning_floor(request: str) -> ThinkingLevel:
+    if _HIGH_REASONING_TERMS.search(request):
+        return "high"
+    number_count = len(re.findall(r"(?<!\w)\d+(?:\.\d+)?", request))
+    if number_count >= _MULTI_STEP_NUMBER_COUNT and _QUANTITATIVE_TERMS.search(request):
+        return "medium"
+    if len(_LOGICAL_TERMS.findall(request)) >= _MULTI_STEP_LOGIC_TERM_COUNT:
+        return "medium"
+    return "low"
 
 
 def build_probe_messages(
@@ -92,11 +144,30 @@ def route_probe_decisions(
     *,
     minimum: ThinkingLevel = "low",
     maximum: ThinkingLevel = "high",
+    high_consequence: bool = False,
 ) -> ReasoningRoutingDecision:
     if not decisions:
         raise ValueError("At least one probe decision is required")
     baseline = decisions[0]
     critic = decisions[-1]
+    if len(decisions) == 1:
+        level: ThinkingLevel = (
+            "medium"
+            if baseline.risk == "low"
+            and baseline.confidence < _CONFIDENT_PROBE_THRESHOLD
+            else baseline.risk
+        )
+        return ReasoningRoutingDecision(
+            level=clamp_thinking_level(level, minimum=minimum, maximum=maximum),
+            stability=baseline.confidence,
+            reason=(
+                "high_risk"
+                if baseline.risk == "high"
+                else "disagreement"
+                if level == "medium"
+                else "stable"
+            ),
+        )
     action_agrees = baseline.action.casefold() == critic.action.casefold()
     targets_a = _target_terms(baseline.targets)
     targets_b = _target_terms(critic.targets)
@@ -108,13 +179,40 @@ def route_probe_decisions(
         return ReasoningRoutingDecision(
             level=level, stability=stability, reason="high_risk"
         )
-    if stability < 1:
-        level = clamp_thinking_level("high", minimum=minimum, maximum=maximum)
+    if min(baseline.confidence, critic.confidence) < _CONFIDENT_PROBE_THRESHOLD:
+        selected = "high" if high_consequence else "medium"
         return ReasoningRoutingDecision(
-            level=level, stability=stability, reason="disagreement"
+            level=clamp_thinking_level(selected, minimum=minimum, maximum=maximum),
+            stability=min(baseline.confidence, critic.confidence),
+            reason="high_risk" if high_consequence else "disagreement",
         )
-    level = clamp_thinking_level("low", minimum=minimum, maximum=maximum)
-    return ReasoningRoutingDecision(level=level, stability=1, reason="stable")
+    if stability < 1:
+        selected: ThinkingLevel = "high" if high_consequence else "medium"
+        level = clamp_thinking_level(selected, minimum=minimum, maximum=maximum)
+        return ReasoningRoutingDecision(
+            level=level,
+            stability=stability,
+            reason="high_risk" if high_consequence else "disagreement",
+        )
+    medium_risk = "medium" in {baseline.risk, critic.risk}
+    selected = (
+        "high"
+        if high_consequence and medium_risk
+        else "medium"
+        if medium_risk
+        else "low"
+    )
+    level = clamp_thinking_level(selected, minimum=minimum, maximum=maximum)
+    return ReasoningRoutingDecision(
+        level=level, stability=1, reason="high_risk" if selected == "high" else "stable"
+    )
+
+
+def should_run_critic(decision: ProbeDecision, request: str) -> bool:
+    return decision.risk != "high" and (
+        decision.confidence < _CONFIDENT_PROBE_THRESHOLD
+        or is_high_consequence_request(request)
+    )
 
 
 def _target_terms(targets: list[str]) -> set[str]:

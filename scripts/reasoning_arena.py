@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from datetime import UTC, datetime
+from fractions import Fraction
 import json
 import os
 from pathlib import Path
@@ -10,12 +11,13 @@ import sys
 import time
 from typing import Literal, cast
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
+from problems import PROBLEMS
 from vibe.core.paths import SESSION_LOG_DIR
 from vibe.utils.io import read_safe
 
-type Policy = Literal["low", "high", "auto"]
+type Policy = Literal["low", "high", "auto_adaptive", "auto_value"]
 
 
 class ArenaTask(BaseModel):
@@ -25,6 +27,10 @@ class ArenaTask(BaseModel):
     title: str
     prompt: str
     expected_auto_level: Literal["low", "high"]
+    category: str = "general"
+    expected_response: str | None = None
+    response_match: Literal["exact", "contains", "accepted"] = "exact"
+    accepted_responses: list[str] = Field(default_factory=list)
 
 
 class ArenaResult(BaseModel):
@@ -32,6 +38,7 @@ class ArenaResult(BaseModel):
 
     task_id: str
     policy: Policy
+    trial: int = 1
     response: str
     routed_level: str | None = None
     routing_reason: str | None = None
@@ -39,6 +46,7 @@ class ArenaResult(BaseModel):
     elapsed_seconds: float
     total_tokens: int | None = None
     cost: float | None = None
+    quality_pass: bool | None = None
     error: str | None = None
 
 
@@ -59,12 +67,21 @@ def parse_arguments() -> argparse.Namespace:
         default=Path(__file__).with_name("reasoning_arena_tasks.json"),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("arena-results"))
+    parser.add_argument(
+        "--repo-problems",
+        action="store_true",
+        help="Evaluate the repository's built-in deterministic problem bank",
+    )
     parser.add_argument("--model", default="mistral-vibe-cli-latest")
     parser.add_argument("--alias", default="mistral-medium-3.5")
     parser.add_argument(
-        "--policies", nargs="+", choices=("low", "high", "auto"), default=None
+        "--policies",
+        nargs="+",
+        choices=("low", "high", "auto_adaptive", "auto_value"),
+        default=None,
     )
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--repeats", type=int, default=1)
     return parser.parse_args()
 
 
@@ -74,25 +91,49 @@ def load_tasks(path: Path, limit: int | None = None) -> list[ArenaTask]:
     return tasks[:limit] if limit is not None else tasks
 
 
+def load_repo_problem_tasks(limit: int | None = None) -> list[ArenaTask]:
+    tasks = [
+        ArenaTask(
+            id=problem.id,
+            title=f"{problem.category}: {problem.id}",
+            prompt=f"{problem.question}\nAnswer only with the final answer.",
+            expected_auto_level=(
+                "low" if problem.hidden_difficulty in {"easy", "medium"} else "high"
+            ),
+            category=problem.category,
+            expected_response=problem.answer,
+            response_match="accepted",
+            accepted_responses=list(problem.accepted_answers),
+        )
+        for problem in PROBLEMS
+    ]
+    return tasks[:limit] if limit is not None else tasks
+
+
 def _model_override(model: str, alias: str, policy: Policy) -> str:
+    thinking = "auto" if policy.startswith("auto_") else policy
     return json.dumps([
         {
             "name": model,
             "provider": "mistral",
             "alias": alias,
             "display_name": alias,
-            "thinking": policy,
+            "thinking": thinking,
             "supports_images": True,
         }
     ])
 
 
 async def run_case(
-    task: ArenaTask, policy: Policy, *, model: str, alias: str
+    task: ArenaTask, policy: Policy, *, model: str, alias: str, trial: int = 1
 ) -> ArenaResult:
     env = dict(os.environ)
     env["VIBE_ACTIVE_MODEL"] = alias
     env["VIBE_MODELS"] = _model_override(model, alias, policy)
+    if policy.startswith("auto_"):
+        env["VIBE_REASONING_ROUTER"] = json.dumps({
+            "strategy": policy.removeprefix("auto_")
+        })
     started = time.perf_counter()
     process = await asyncio.create_subprocess_exec(
         sys.executable,
@@ -115,17 +156,19 @@ async def run_case(
         return ArenaResult(
             task_id=task.id,
             policy=policy,
+            trial=trial,
             response="",
             elapsed_seconds=elapsed,
             error=stderr.decode(errors="replace").strip(),
         )
     try:
         history = json.loads(stdout)
-        return _result_from_history(task.id, policy, history, elapsed)
+        return _result_from_history(task, policy, history, elapsed, trial)
     except (json.JSONDecodeError, ValueError) as exc:
         return ArenaResult(
             task_id=task.id,
             policy=policy,
+            trial=trial,
             response="",
             elapsed_seconds=elapsed,
             error=str(exc),
@@ -133,7 +176,11 @@ async def run_case(
 
 
 def _result_from_history(
-    task_id: str, policy: Policy, history: list[dict[str, object]], elapsed: float
+    task: ArenaTask,
+    policy: Policy,
+    history: list[dict[str, object]],
+    elapsed: float,
+    trial: int = 1,
 ) -> ArenaResult:
     routing = next(
         (detail for entry in history if (detail := _routing_detail(entry)) is not None),
@@ -152,16 +199,19 @@ def _result_from_history(
     response = _content_text(assistant.get("content"))
     session_id = str(assistant.get("sessionId", ""))
     tokens, cost = _session_metrics(session_id)
+    stability = routing.get("stability") if routing else None
     return ArenaResult(
-        task_id=task_id,
+        task_id=task.id,
         policy=policy,
+        trial=trial,
         response=response,
         routed_level=str(routing.get("level")) if routing else None,
         routing_reason=str(routing.get("reason")) if routing else None,
-        stability=float(routing["stability"]) if routing else None,
+        stability=float(stability) if isinstance(stability, int | float) else None,
         elapsed_seconds=elapsed,
         total_tokens=tokens,
         cost=cost,
+        quality_pass=_quality_pass(task, response),
     )
 
 
@@ -204,18 +254,20 @@ def _session_metrics(session_id: str) -> tuple[int | None, float | None]:
 
 
 def render_markdown(report: ArenaReport) -> str:
-    summaries = {
-        policy: _policy_summary(report.results, policy)
-        for policy in ("low", "high", "auto")
+    policies: tuple[Policy, ...] = tuple(
+        dict.fromkeys(result.policy for result in report.results)
+    )
+    summaries: dict[Policy, dict[str, float]] = {
+        policy: _policy_summary(report.results, policy) for policy in policies
     }
     lines = [
         "# Vibe Reasoning Arena",
         "",
-        f"Model: `{report.model}`  ",
+        f"Model: `{report.model}`",
         f"Created: {report.created_at}",
         "",
-        "| Task | Policy | Routed | Tokens | Cost | Seconds |",
-        "| --- | --- | --- | ---: | ---: | ---: |",
+        "| Task | Trial | Policy | Routed | Quality | Tokens | Cost | Seconds |",
+        "| --- | ---: | --- | --- | ---: | ---: | ---: | ---: |",
     ]
     tasks = {task.id: task for task in report.tasks}
     for result in report.results:
@@ -223,47 +275,51 @@ def render_markdown(report: ArenaReport) -> str:
         routed = result.routed_level or "—"
         tokens = str(result.total_tokens) if result.total_tokens is not None else "—"
         cost = f"${result.cost:.5f}" if result.cost is not None else "—"
+        quality = (
+            "—" if result.quality_pass is None else "✓" if result.quality_pass else "✗"
+        )
         lines.append(
-            f"| {task.title} | {result.policy} | {routed} | {tokens} | "
-            f"{cost} | {result.elapsed_seconds:.2f} |"
+            f"| {task.title} | {result.trial} | {result.policy} | {routed} | "
+            f"{quality} | {tokens} | {cost} | {result.elapsed_seconds:.2f} |"
         )
     lines.extend([
         "",
         "## Policy totals",
         "",
-        "| Policy | Tokens | Cost | Seconds |",
-        "| --- | ---: | ---: | ---: |",
+        "| Policy | Runs | Quality | Avg tokens | Avg cost | Avg seconds |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ])
     for policy, summary in summaries.items():
         lines.append(
-            f"| {policy} | {summary['tokens']:.0f} | ${summary['cost']:.5f} | "
-            f"{summary['seconds']:.2f} |"
+            f"| {policy} | {summary['runs']:.0f} | {summary['quality']:.1f}% | "
+            f"{summary['tokens']:.0f} | "
+            f"${summary['cost']:.5f} | {summary['seconds']:.2f} |"
         )
-    high = summaries["high"]
-    auto = summaries["auto"]
-    if high["cost"] > 0 and high["seconds"] > 0:
-        cost_saving = (high["cost"] - auto["cost"]) / high["cost"] * 100
-        time_saving = (high["seconds"] - auto["seconds"]) / high["seconds"] * 100
+    _append_comparisons(lines, summaries)
+    for policy in policies:
+        if not policy.startswith("auto_"):
+            continue
+        auto_results = [result for result in report.results if result.policy == policy]
+        correct = sum(
+            result.routed_level == tasks[result.task_id].expected_auto_level
+            for result in auto_results
+        )
         lines.extend([
             "",
-            f"AutoThink vs High: **{cost_saving:.1f}% cost reduction**, "
-            f"**{time_saving:.1f}% latency reduction**.",
+            f"{policy} routing agreement: **{correct}/{len(auto_results)} "
+            f"({_percentage(correct, len(auto_results)):.1f}%)**",
+            "",
+            f"### {policy} routing confusion",
+            "",
+            "| Expected | Routed low | Routed high | Other/error |",
+            "| --- | ---: | ---: | ---: |",
         ])
-    auto_results = [result for result in report.results if result.policy == "auto"]
-    correct = sum(
-        result.routed_level == tasks[result.task_id].expected_auto_level
-        for result in auto_results
-    )
-    lines.extend([
-        "",
-        f"AutoThink routing agreement: **{correct}/{len(auto_results)}**",
-        "",
-        "## Responses",
-        "",
-    ])
+        lines.extend(_routing_confusion_rows(auto_results, tasks))
+    lines.extend(["", "## Responses", ""])
     for result in report.results:
         lines.extend([
-            f"### {tasks[result.task_id].title} — {result.policy}",
+            f"### {tasks[result.task_id].title} — {result.policy} "
+            f"(trial {result.trial})",
             "",
             result.error or result.response,
             "",
@@ -273,24 +329,129 @@ def render_markdown(report: ArenaReport) -> str:
 
 def _policy_summary(results: list[ArenaResult], policy: Policy) -> dict[str, float]:
     selected = [result for result in results if result.policy == policy]
+    count = len(selected)
+    if count == 0:
+        return {"runs": 0.0, "quality": 0.0, "tokens": 0.0, "cost": 0.0, "seconds": 0.0}
+    scored = [
+        result.quality_pass for result in selected if result.quality_pass is not None
+    ]
     return {
-        "tokens": float(sum(result.total_tokens or 0 for result in selected)),
-        "cost": sum(result.cost or 0 for result in selected),
-        "seconds": sum(result.elapsed_seconds for result in selected),
+        "runs": float(count),
+        "quality": _percentage(sum(scored), len(scored)),
+        "tokens": sum(result.total_tokens or 0 for result in selected) / count,
+        "cost": sum(result.cost or 0 for result in selected) / count,
+        "seconds": sum(result.elapsed_seconds for result in selected) / count,
     }
+
+
+def _percentage(numerator: int, denominator: int) -> float:
+    return numerator / denominator * 100 if denominator else 0.0
+
+
+def _change_label(change: float, metric: str) -> str:
+    direction = "increase" if change > 0 else "reduction"
+    return f"{abs(change):.1f}% {metric} {direction}"
+
+
+def _quality_pass(task: ArenaTask, response: str) -> bool | None:
+    if task.expected_response is None:
+        return None
+    actual = " ".join(response.casefold().split())
+    expected = " ".join(task.expected_response.casefold().split())
+    if task.response_match == "contains":
+        return expected in actual
+    if task.response_match == "accepted":
+        return _matches_accepted_response(response, task.accepted_responses)
+    return actual == expected
+
+
+def _matches_accepted_response(response: str, accepted: list[str]) -> bool:
+    normalized = response.strip().casefold().replace(" ", "")
+    normalized_accepted = {
+        answer.strip().casefold().replace(" ", "") for answer in accepted
+    }
+    if normalized in normalized_accepted:
+        return True
+    try:
+        submitted = _as_fraction(response)
+    except (ValueError, ZeroDivisionError):
+        return False
+    for answer in accepted:
+        try:
+            if submitted == _as_fraction(answer):
+                return True
+        except (ValueError, ZeroDivisionError):
+            continue
+    return False
+
+
+def _as_fraction(value: str) -> Fraction:
+    cleaned = value.strip().casefold().replace(" ", "")
+    if cleaned.endswith("%"):
+        return Fraction(cleaned[:-1]) / 100
+    return Fraction(cleaned)
+
+
+def _append_comparisons(
+    lines: list[str], summaries: dict[Policy, dict[str, float]]
+) -> None:
+    high = summaries.get("high")
+    if high is None or high["cost"] <= 0 or high["seconds"] <= 0:
+        return
+    for policy in ("auto_adaptive", "auto_value"):
+        auto = summaries.get(policy)
+        if auto is None:
+            continue
+        cost_change = (auto["cost"] - high["cost"]) / high["cost"] * 100
+        time_change = (auto["seconds"] - high["seconds"]) / high["seconds"] * 100
+        lines.extend([
+            "",
+            f"{policy} vs High: **{_change_label(cost_change, 'cost')}**, "
+            f"**{_change_label(time_change, 'latency')}**.",
+        ])
+
+
+def _routing_confusion_rows(
+    results: list[ArenaResult], tasks: dict[str, ArenaTask]
+) -> list[str]:
+    rows: list[str] = []
+    for expected in ("low", "high"):
+        selected = [
+            result
+            for result in results
+            if tasks[result.task_id].expected_auto_level == expected
+        ]
+        low = sum(result.routed_level == "low" for result in selected)
+        high = sum(result.routed_level == "high" for result in selected)
+        rows.append(f"| {expected} | {low} | {high} | {len(selected) - low - high} |")
+    return rows
 
 
 async def run() -> int:
     args = parse_arguments()
-    tasks = load_tasks(args.tasks, args.limit)
-    policies: list[Policy] = args.policies or ["low", "high", "auto"]
+    if args.repeats < 1:
+        raise ValueError("--repeats must be at least 1")
+    tasks = (
+        load_repo_problem_tasks(args.limit)
+        if args.repo_problems
+        else load_tasks(args.tasks, args.limit)
+    )
+    policies: list[Policy] = args.policies or [
+        "low",
+        "high",
+        "auto_adaptive",
+        "auto_value",
+    ]
     results: list[ArenaResult] = []
-    for task in tasks:
-        for policy in policies:
-            print(f"Running {task.id} with {policy}...", flush=True)
-            results.append(
-                await run_case(task, policy, model=args.model, alias=args.alias)
-            )
+    for trial in range(1, args.repeats + 1):
+        for task in tasks:
+            for policy in policies:
+                print(f"Running {task.id} with {policy} (trial {trial})...", flush=True)
+                results.append(
+                    await run_case(
+                        task, policy, model=args.model, alias=args.alias, trial=trial
+                    )
+                )
     report = ArenaReport(
         created_at=datetime.now(UTC).isoformat(),
         model=args.alias,

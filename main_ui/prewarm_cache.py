@@ -7,8 +7,9 @@ import json
 import time
 from typing import Any
 
-from game import GameConfig, LIVE_SOLVER_CACHE_PATH, new_game, play_round
 from vibe_client import VibeCliClient
+
+from game import LIVE_SOLVER_CACHE_PATH, GameConfig, new_game, play_round
 
 
 def _cache_size() -> int:
@@ -20,7 +21,7 @@ def _cache_size() -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rounds", type=int, default=25)
+    parser.add_argument("--rounds", type=int, default=5)
     args = parser.parse_args()
 
     state = new_game(

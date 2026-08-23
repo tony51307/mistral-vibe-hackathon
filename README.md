@@ -4,7 +4,7 @@ Pay-to-Think poker-table demo for Mistral Vibe Auto Thinking.
 
 ## Demo
 
-Three agents play a 25-hand math bidding game in the Streamlit UI:
+Three agents play a 5-hand math bidding game in the Streamlit UI:
 
 - **The Prodigy**: no-thinker baseline. It still calls the Mistral solver, but Vibe thinking is forced off.
 - **The Professor**: always-thinker baseline. It buys high reasoning whenever affordable.
@@ -33,7 +33,7 @@ Open:
 http://localhost:8502
 ```
 
-The main control is **Auto-play 25 hands**. The UI starts at `0 / 25`, then advances through each hand while showing the latest result in the middle of the table.
+The main control is **Auto-play 5 hands**. The UI starts at `0 / 5`, then advances through each hand while showing the latest result in the middle of the table.
 
 ## Live Mistral And Vibe CLI
 
@@ -55,16 +55,16 @@ With the Vibe CLI backend, the no-thinker, always-thinker, and Auto Thinking age
 
 ## Cache Prewarm
 
-The UI caches live solver responses for the first 25 hands in:
+The UI caches live solver responses for the first 5 hands in:
 
 ```text
-main_ui/.cache/live_solver_rounds25.json
+main_ui/.cache/live_solver_first5.json
 ```
 
 Prewarm the active cache with:
 
 ```bash
-uv run python main_ui/prewarm_cache.py --rounds 25
+uv run python main_ui/prewarm_cache.py --rounds 5
 ```
 
 This makes live Vibe/Mistral calls and can take several minutes. The demo intentionally adds one second of solver latency per live call so autoplay feels closer to a real API-backed table.

@@ -14,14 +14,21 @@ UI_ROOT = Path(__file__).resolve().parent
 if sys.path[:1] != [str(UI_ROOT)]:
     sys.path.insert(0, str(UI_ROOT))
 
-from game import GameConfig, GameState, agenda_labels, new_game, play_round, roster_labels
+from game import (
+    GameConfig,
+    GameState,
+    agenda_labels,
+    new_game,
+    play_round,
+    roster_labels,
+)
 
 if sys.path[:1] != [str(UI_ROOT)]:
     sys.path.insert(0, str(UI_ROOT))
 
-from mistral_client import MistralClient
 from vibe_client import VibeCliClient
 
+from mistral_client import MistralClient
 
 st.set_page_config(page_title="Pay-to-Think Table", layout="wide")
 
@@ -329,10 +336,20 @@ def main() -> None:
             index=list(rosters).index(current.config.agent_roster),
             format_func=lambda value: rosters[value],
         )
-        start = st.number_input("Starting stack S", value=current.config.start_bankroll, disabled=True)
-        fee = st.number_input("Entry fee X", value=current.config.entrance_fee, disabled=True)
-        dealer_h = st.number_input("Dealer contribution H", value=current.config.dealer_contribution, disabled=True)
-        rounds = st.number_input("Season rounds", value=current.config.n_rounds, disabled=True)
+        start = st.number_input(
+            "Starting stack S", value=current.config.start_bankroll, disabled=True
+        )
+        fee = st.number_input(
+            "Entry fee X", value=current.config.entrance_fee, disabled=True
+        )
+        dealer_h = st.number_input(
+            "Dealer contribution H",
+            value=current.config.dealer_contribution,
+            disabled=True,
+        )
+        rounds = st.number_input(
+            "Season rounds", value=current.config.n_rounds, disabled=True
+        )
         agendas = agenda_labels()
         agenda_options = list(agendas)
         strategy = st.selectbox(
@@ -350,7 +367,9 @@ def main() -> None:
             index=["vibe_cli", "direct_sdk"].index(
                 getattr(current.config, "solver_backend", "vibe_cli")
             ),
-            format_func=lambda value: "Vibe CLI" if value == "vibe_cli" else "Direct SDK",
+            format_func=lambda value: (
+                "Vibe CLI" if value == "vibe_cli" else "Direct SDK"
+            ),
         )
         show_traces = st.toggle("Show dealer traces", value=True)
         st.caption("Reasoning prices Y: none $1, low $2, medium $3, high $5, xhigh $9.")
@@ -391,12 +410,19 @@ def main() -> None:
             st.session_state.autoplay = False
 
     a, b, c, d = st.columns(4)
-    a.metric("Hand", f"{min(game.round_index, game.config.n_rounds)} / {game.config.n_rounds}")
+    a.metric(
+        "Hand",
+        f"{min(game.round_index, game.config.n_rounds)} / {game.config.n_rounds}",
+    )
     b.metric("Rollover", game.prize_pool)
     c.metric("Entry X", game.config.entrance_fee)
     d.metric("Dealer H", game.config.dealer_contribution)
 
-    if st.button("Auto-play 25 hands", type="primary", disabled=game.finished or autoplay_active):
+    if st.button(
+        f"Auto-play {game.config.n_rounds} hands",
+        type="primary",
+        disabled=game.finished or autoplay_active,
+    ):
         st.session_state.autoplay = True
         st.rerun()
 
@@ -411,7 +437,11 @@ def main() -> None:
     _scoreboard(game)
     if game.finished:
         _final(game)
-    if st.session_state.get("autoplay") and not game.finished and not st.session_state.get("round_error"):
+    if (
+        st.session_state.get("autoplay")
+        and not game.finished
+        and not st.session_state.get("round_error")
+    ):
         time.sleep(0.35)
         st.rerun()
 
@@ -488,12 +518,12 @@ def _seat_html(p: dict, pos: str) -> str:
       <div class="seat-head">
         {avatar}
         <div>
-          <div class="seat-name">{emoji} {html.escape(p['name'])}</div>
-          <div class="seat-role">{html.escape(str(p.get('thinking') or ''))}</div>
+          <div class="seat-name">{emoji} {html.escape(p["name"])}</div>
+          <div class="seat-role">{html.escape(str(p.get("thinking") or ""))}</div>
         </div>
       </div>
-      <div class="seat-stack">Total: {_money(p['stack'])}</div>
-      <div class="seat-think">Cost: {_money(p.get('think') or 0)}</div>
+      <div class="seat-stack">Total: {_money(p["stack"])}</div>
+      <div class="seat-think">Cost: {_money(p.get("think") or 0)}</div>
       {ans_html}
     </div>"""
 
@@ -525,12 +555,13 @@ def _poker_table(record: dict | None, game: GameState) -> None:
             _seat_html(_player_view(record, name, game), positions[index])
             for index, name in enumerate(names)
         )
-        ann = record["announcement"]
         q = html.escape(record["problem"]["question"])
         pot = record["prize"]
         meta = f"Hand {record['round']}"
         if record.get("winners"):
-            footer = f"Showdown · answer {html.escape(str(record['problem']['answer']))}"
+            footer = (
+                f"Showdown · answer {html.escape(str(record['problem']['answer']))}"
+            )
         else:
             footer = f"No winner · pot rolls {record.get('rollover', 0)}"
         board = f'<div class="problem-meta">Board</div>{q}<div class="dealer-answer">{footer}</div>'
@@ -635,8 +666,8 @@ def _answer_rail(record: dict) -> None:
             if trace:
                 extra = (
                     f'<div class="tag">{html.escape(str(trace.get("cheap_answer")))} → '
-                    f'{html.escape(str(trace.get("deep_answer") or ans))} · '
-                    f'{"PAY" if trace.get("pay_to_think") else "KEEP"}</div>'
+                    f"{html.escape(str(trace.get('deep_answer') or ans))} · "
+                    f"{'PAY' if trace.get('pay_to_think') else 'KEEP'}</div>"
                 )
         cards.append(
             f'<div class="hole"><div class="who">{SEAT_EMOJI.get(name, "●")} {html.escape(name)}</div>'
@@ -668,17 +699,17 @@ def _dealer_panel(record: dict) -> None:
     with st.expander("Full dealer traces", expanded=False):
         event = record.get("dealer_event") or {}
         if event:
-            st.write(
-                {
-                    "hidden_difficulty": event.get("hidden_difficulty"),
-                    "hidden_guessability": event.get("hidden_guessability"),
-                    "problem_bank_sha256": event.get("problem_bank_sha256"),
-                    "agenda_sha256": event.get("agenda_sha256"),
-                    "reasoning_mapping_version": event.get("reasoning_mapping_version"),
-                }
-            )
+            st.write({
+                "hidden_difficulty": event.get("hidden_difficulty"),
+                "hidden_guessability": event.get("hidden_guessability"),
+                "problem_bank_sha256": event.get("problem_bank_sha256"),
+                "agenda_sha256": event.get("agenda_sha256"),
+                "reasoning_mapping_version": event.get("reasoning_mapping_version"),
+            })
         for cycle in record.get("cycles") or []:
-            st.markdown(f"**Routing and solving** — {cycle['public']['dealer_announcement']}")
+            st.markdown(
+                f"**Routing and solving** — {cycle['public']['dealer_announcement']}"
+            )
             for entry in cycle["dealer"]:
                 st.write(
                     f"{entry['agent']}: {entry.get('tier')} "
@@ -691,9 +722,9 @@ def _dealer_panel(record: dict) -> None:
 def _dynamic_trace(trace: dict) -> None:
     st.markdown(
         f"""
-Cheap `{trace.get('cheap_answer')}` · probes {', '.join(str(a) for a in (trace.get('perturbed_answers') or []))}
-Stability **{trace.get('stability')}** · {'PAY TO THINK' if trace.get('pay_to_think') else 'KEEP CHEAP'}
-Deep `{trace.get('deep_answer') or '—'}` · changed {trace.get('changed_answer')}
+Cheap `{trace.get("cheap_answer")}` · probes {", ".join(str(a) for a in (trace.get("perturbed_answers") or []))}
+Stability **{trace.get("stability")}** · {"PAY TO THINK" if trace.get("pay_to_think") else "KEEP CHEAP"}
+Deep `{trace.get("deep_answer") or "—"}` · changed {trace.get("changed_answer")}
         """
     )
 
@@ -703,22 +734,20 @@ def _scoreboard(game: GameState) -> None:
     rows = []
     for name in _names(game):
         s = game.stats[name]
-        rows.append(
-            {
-                "seat": name,
-                "thinker type": _thinking_label_for_name(game, name),
-                "stack": s["bankroll"],
-                "hands": s["rounds_played"],
-                "folds": s["rounds_declined"],
-                "showdown wins": s["correct"],
-                "misses": s["incorrect"],
-                "credits spent": s["credits_spent"],
-                "pots won": s["prize_won"],
-                "net": s["net_profit"],
-                "accuracy": round(s["accuracy"], 2),
-                "pot / credit": round(s["reward_per_credit"], 2),
-            }
-        )
+        rows.append({
+            "seat": name,
+            "thinker type": _thinking_label_for_name(game, name),
+            "stack": s["bankroll"],
+            "hands": s["rounds_played"],
+            "folds": s["rounds_declined"],
+            "showdown wins": s["correct"],
+            "misses": s["incorrect"],
+            "credits spent": s["credits_spent"],
+            "pots won": s["prize_won"],
+            "net": s["net_profit"],
+            "accuracy": round(s["accuracy"], 2),
+            "pot / credit": round(s["reward_per_credit"], 2),
+        })
     st.dataframe(rows, width="stretch", hide_index=True)
 
 

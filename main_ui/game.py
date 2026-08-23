@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 import hashlib
@@ -10,11 +11,10 @@ from pathlib import Path
 import re
 import sys
 import time
-from typing import Any, Mapping
+from typing import Any
 
 from metrics import attach_bankroll, empty_stats, summary, update_after_round
 from prompts import CHEAP_SYSTEM, DEEP_SYSTEM, cheap_user, deep_user
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEALER_ROOT = REPO_ROOT / "dealer"
@@ -25,7 +25,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from dealer.game.agent_config import load_agent_catalog
 from dealer.game.dealer_distributor import DealerGame, SeasonComplete
-from dealer.game.loaders import load_agenda_catalogs, load_problem_banks, load_table_modes
+from dealer.game.loaders import load_agenda_catalogs, load_problem_banks
 from dealer.game.models import GameConfig as DealerGameConfig
 
 BANK_PATHS = (
@@ -42,18 +42,12 @@ DEFAULT_ROSTER_ID = "social_3"
 DEFAULT_ENTRY_FEE = 15
 DEFAULT_STRATEGY_NUMBER = 10
 DEFAULT_SOLVER_BACKEND = "vibe_cli"
-DEFAULT_ROUNDS = 25
+DEFAULT_ROUNDS = 5
 DEMO_SOLVER_LATENCY_SECONDS = 1.0
-LIVE_SOLVER_CACHE_ROUNDS = 25
-LIVE_SOLVER_CACHE_PATH = REPO_ROOT / "main_ui" / ".cache" / "live_solver_rounds25.json"
+LIVE_SOLVER_CACHE_ROUNDS = DEFAULT_ROUNDS
+LIVE_SOLVER_CACHE_PATH = REPO_ROOT / "main_ui" / ".cache" / "live_solver_first5.json"
 
-TIER_PRICE = {
-    "none": 1,
-    "low": 2,
-    "medium": 3,
-    "high": 5,
-    "xhigh": 9,
-}
+TIER_PRICE = {"none": 1, "low": 2, "medium": 3, "high": 5, "xhigh": 9}
 
 REASONING_EFFORT_BY_TIER = {
     "none": None,
@@ -179,7 +173,9 @@ def new_game(config: GameConfig) -> GameState:
         agent_id: str(metadata[agent_id]["profile_id"]) for agent_id in player_ids
     }
     policies = {
-        agent_id: agent_catalog.profile_for_agent(config.agent_roster, agent_id).policies.reasoning
+        agent_id: agent_catalog.profile_for_agent(
+            config.agent_roster, agent_id
+        ).policies.reasoning
         for agent_id in player_ids
     }
     thinking_labels = {
@@ -203,7 +199,10 @@ def new_game(config: GameConfig) -> GameState:
         bluff_modes=bluff_modes,
         listens_to_talk=listens_to_talk,
         bankrolls={name: config.start_bankroll for name in display_names.values()},
-        stats={name: empty_stats(name, config.start_bankroll) for name in display_names.values()},
+        stats={
+            name: empty_stats(name, config.start_bankroll)
+            for name in display_names.values()
+        },
     )
 
 
@@ -220,7 +219,9 @@ def play_round(state: GameState, client: Any) -> dict[str, Any]:
 
     round_number = next(iter(category_payloads.values()))["round"]
     dealer.collect_entries()
-    messages = _table_talk(category_payloads, state) if state.config.enable_bluffing else {}
+    messages = (
+        _table_talk(category_payloads, state) if state.config.enable_bluffing else {}
+    )
     display_messages = dealer.record_table_talk(messages)
     problem_payloads = dealer.reveal_problem()
     routers = {
@@ -301,7 +302,9 @@ def _bluff_message(
     return f"{name}: {category} is uncertain. I will decide after hearing the table."
 
 
-def _truncate_table_talk(message: str, max_words: int = 50, max_chars: int = 100) -> str:
+def _truncate_table_talk(
+    message: str, max_words: int = 50, max_chars: int = 100
+) -> str:
     words = message.split()
     if len(words) > max_words:
         message = " ".join(words[:max_words])
@@ -337,10 +340,18 @@ def _router(agent_id: str, round_number: int, policy: str, listens_to_talk: bool
 def _adjust_tier_for_table_talk(tier: str, public_messages: Any) -> str:
     if not isinstance(public_messages, Mapping):
         return tier
-    table_text = " ".join(str(message).casefold() for message in public_messages.values())
-    if any(token in table_text for token in ("strongest", "high reasoning", "xhigh", "serious bid", "overpay")):
+    table_text = " ".join(
+        str(message).casefold() for message in public_messages.values()
+    )
+    if any(
+        token in table_text
+        for token in ("strongest", "high reasoning", "xhigh", "serious bid", "overpay")
+    ):
         return _raise_tier(tier)
-    if any(token in table_text for token in ("save chips", "keeping this cheap", "not worth", "crowded")):
+    if any(
+        token in table_text
+        for token in ("save chips", "keeping this cheap", "not worth", "crowded")
+    ):
         return _lower_tier(tier)
     return tier
 
@@ -384,7 +395,9 @@ def _solver(agent_id: str, problem: dict[str, Any], client: Any | None, policy: 
                     model="offline-rate-limit-fallback",
                     error=str(exc),
                 )
-        return _offline_solver_response(agent_id, problem, tier, model="offline-dealer-demo")
+        return _offline_solver_response(
+            agent_id, problem, tier, model="offline-dealer-demo"
+        )
 
     return solve
 
@@ -400,11 +413,7 @@ def _offline_solver_response(
     answer = problem["answer"]["display"]
     if not _mock_correct(agent_id, str(problem["id"]), tier, problem):
         answer = _wrong_answer(problem)
-    response = {
-        "answer": answer,
-        "model": model,
-        "api_reasoning_configuration": tier,
-    }
+    response = {"answer": answer, "model": model, "api_reasoning_configuration": tier}
     if error:
         response["provider_error"] = error[:240]
     return response
@@ -420,7 +429,11 @@ def _live_solver_response(
     tier_note = f"\n\nAllowed reasoning tier bid: {tier}"
     strong = tier in {"medium", "high", "xhigh"}
     system = DEEP_SYSTEM if strong else CHEAP_SYSTEM
-    user = deep_user(f"{prompt}{tier_note}") if strong else cheap_user(f"{prompt}{tier_note}")
+    user = (
+        deep_user(f"{prompt}{tier_note}")
+        if strong
+        else cheap_user(f"{prompt}{tier_note}")
+    )
     reasoning_effort = REASONING_EFFORT_BY_TIER[tier]
     max_tokens = 256
     cache_key = _live_solver_cache_key(
@@ -482,7 +495,9 @@ def _vibe_solver_response(
     )
     if cache_key and (cached := _read_live_solver_cache().get(cache_key)):
         return dict(cached)
-    data = client.solve_json(prompt=prompt, tier=tier, policy=policy, max_tokens=max_tokens)
+    data = client.solve_json(
+        prompt=prompt, tier=tier, policy=policy, max_tokens=max_tokens
+    )
     answer = _extract_live_answer(data)
     response: dict[str, Any] = {
         "answer": answer,
@@ -560,8 +575,7 @@ def _write_live_solver_cache(key: str, response: Mapping[str, Any]) -> None:
     try:
         LIVE_SOLVER_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         LIVE_SOLVER_CACHE_PATH.write_text(
-            json.dumps(cache, indent=2, sort_keys=True),
-            encoding="utf-8",
+            json.dumps(cache, indent=2, sort_keys=True), encoding="utf-8"
         )
     except OSError:
         return
@@ -613,7 +627,10 @@ def _first_scalar_answer(text: str) -> str:
     match = re.search(r'"answer"\s*:\s*"([^"]+)"', stripped)
     if match:
         return match.group(1).strip()
-    match = re.search(r"(?i)(?:final answer|answer)\s*(?:is|:)\s*([+-]?\d+(?:\.\d+)?(?:/\d+)?)", stripped)
+    match = re.search(
+        r"(?i)(?:final answer|answer)\s*(?:is|:)\s*([+-]?\d+(?:\.\d+)?(?:/\d+)?)",
+        stripped,
+    )
     if match:
         return match.group(1).strip()
     numbers = re.findall(r"[+-]?\d+(?:\.\d+)?(?:/\d+)?", stripped)
@@ -622,14 +639,46 @@ def _first_scalar_answer(text: str) -> str:
     return ""
 
 
-def _mock_correct(agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]) -> bool:
+def _mock_correct(
+    agent_id: str, problem_id: str, tier: str, problem: dict[str, Any]
+) -> bool:
     difficulty = problem["dealer_meta"]["difficulty"]
     probabilities = {
-        "trivial": {"none": 0.92, "low": 0.95, "medium": 0.97, "high": 0.99, "xhigh": 0.99},
-        "easy": {"none": 0.82, "low": 0.88, "medium": 0.93, "high": 0.97, "xhigh": 0.99},
-        "medium": {"none": 0.52, "low": 0.62, "medium": 0.76, "high": 0.86, "xhigh": 0.91},
-        "hard": {"none": 0.25, "low": 0.36, "medium": 0.54, "high": 0.70, "xhigh": 0.80},
-        "very_hard": {"none": 0.12, "low": 0.22, "medium": 0.36, "high": 0.54, "xhigh": 0.66},
+        "trivial": {
+            "none": 0.92,
+            "low": 0.95,
+            "medium": 0.97,
+            "high": 0.99,
+            "xhigh": 0.99,
+        },
+        "easy": {
+            "none": 0.82,
+            "low": 0.88,
+            "medium": 0.93,
+            "high": 0.97,
+            "xhigh": 0.99,
+        },
+        "medium": {
+            "none": 0.52,
+            "low": 0.62,
+            "medium": 0.76,
+            "high": 0.86,
+            "xhigh": 0.91,
+        },
+        "hard": {
+            "none": 0.25,
+            "low": 0.36,
+            "medium": 0.54,
+            "high": 0.70,
+            "xhigh": 0.80,
+        },
+        "very_hard": {
+            "none": 0.12,
+            "low": 0.22,
+            "medium": 0.36,
+            "high": 0.54,
+            "xhigh": 0.66,
+        },
     }
     probability = probabilities.get(difficulty, probabilities["medium"])[tier]
     if agent_id == "dynamic" and tier in {"high", "xhigh"}:
@@ -752,7 +801,9 @@ def _record_from_event(
         ],
         "winners": winners,
         "payouts": payouts,
-        "payout_each": dollars(event["pot_cents"] // max(1, len(winners))) if winners else 0,
+        "payout_each": dollars(event["pot_cents"] // max(1, len(winners)))
+        if winners
+        else 0,
         "prize": dollars(event["pot_cents"]),
         "rollover": dollars(event["rollover_out_cents"]),
         "bankrolls": {
@@ -766,7 +817,11 @@ def _record_from_event(
 def _autothink_trace(
     agent_id: str, row: dict[str, Any], event: dict[str, Any], state: GameState
 ) -> dict[str, Any]:
-    if state.policies.get(agent_id) not in {"perturbation_router", "dynamic", "learned"}:
+    if state.policies.get(agent_id) not in {
+        "perturbation_router",
+        "dynamic",
+        "learned",
+    }:
         return {}
     tier = row["router_tier"]
     paid = tier in {"high", "xhigh"}
@@ -781,14 +836,17 @@ def _autothink_trace(
     }
 
 
-def _agent_metrics(agent_id: str, row: dict[str, Any], state: GameState) -> dict[str, Any]:
+def _agent_metrics(
+    agent_id: str, row: dict[str, Any], state: GameState
+) -> dict[str, Any]:
     tier = row["router_tier"]
     return {
         "cheap_calls": 1 if tier in {"none", "low"} else 0,
         "perturbation_calls": 2 if agent_id == "dynamic" else 0,
         "deep_calls": 1 if tier in {"high", "xhigh"} else 0,
         "deep_triggered": agent_id == "dynamic" and tier in {"high", "xhigh"},
-        "changed_answer": state.policies.get(agent_id) == "perturbation_router" and tier in {"high", "xhigh"},
+        "changed_answer": state.policies.get(agent_id) == "perturbation_router"
+        and tier in {"high", "xhigh"},
     }
 
 
